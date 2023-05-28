@@ -8,7 +8,7 @@ Please refer to Helm's [documentation](https://helm.sh/docs/) to get started.
 Once Helm is set up properly, add the repo as follows:
 
 ```console
-helm repo add pub_charts https://.../helm/charts
+helm repo add sortns_charts https://sortns.github.io/helm/charts
 ```
 
 You can then run `helm search repo stable` to see the charts
