@@ -44,17 +44,18 @@ The following table lists the configurable parameters of the webapp chart and th
 | `resources.limits.memory`                         | Memory limit per zetcd pod                                   | `128mi`                                       |
 | `resources.requests.cpu`                          | CPU request per zetcd pod                                    | `50m`                                        |
 | `resources.requests.memory`                       | Memory request per zetcd pod                                 | `64mi`                                       |
-| `nodeSelector`                                    | Node labels for pod assignment                               |`{}`                                     |
-| `host` | Host name for ingress URL application | `dev.test.net` | 
+| `ingress.enabled` | Ingress functional | `true` |
+| `ingress.className` | Ingress className | `` |
+| `ingress.annotations.kubernetes.io/ingress.class` | Ingress class | `nginx` |
+| `ingress.hosts` | Ingress hosts range | `dev.test.net` |
+| `ingress.tls` | Ingress tls | `[]` |
 | `service.type` | Type of service | `ClusterIP` |
 | `service.port` | Service's port | `80` |
-| `topologySpreadConstraints.maxSkew` | Topology spread max skew | `1` |
-| `topologySpreadConstraints.topologyKey` | Topology spread key | `kubernetes.io/hostname` |
-| `topologySpreadConstraints.whenUnsatisfiable` | Topology spread when unsatisfiable | `DoNotSchedule` |
-| `topologySpreadConstraints.whenUnsatisfiable` | Topology spread when unsatisfiable | `DoNotSchedule` |
-| `topologySpreadConstraints.labelSelector.matchLabels.app.kubernetes.io/instance` | Topology spread label selector| `webapp` |
-| `labels.app`                            | Application label                    | `webapp`                                        |
-
+| `topology_max_skew` | Topology spread max skew | `1` |
+| `autoscaling` | Autoscalling settings | `{}` |
+| `nodeSelector`                                    | Node labels for pod assignment                               |`{}`                                     |
+| `tolerations` | Toleration | `[]` |
+| `affinity`| Affinity | `{}` | 
 
 
 

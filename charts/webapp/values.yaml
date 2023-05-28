@@ -10,11 +10,6 @@ image:
   # Overrides the image tag whose default is the chart appVersion.
   tag: "1.9.1"
 
-host: dev.test.net
-
-labels:
-    app: webapp
-    url: dev.test.net
 
 imagePullSecrets: []
 nameOverride: ""
@@ -90,10 +85,4 @@ tolerations: []
 affinity: {}
 
 # do not store more than 1 pod per node
-topologySpreadConstraints:
-    - maxSkew: 1
-      topologyKey: kubernetes.io/hostname
-      whenUnsatisfiable: DoNotSchedule
-      labelSelector:
-        matchLabels:
-            app.kubernetes.io/instance: webapp
+topology_max_skew: 1
