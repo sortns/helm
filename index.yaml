@@ -3,6 +3,16 @@ entries:
   webapp:
   - apiVersion: v2
     appVersion: 0.1.0
+    created: "2023-05-28T20:37:37.080901837Z"
+    description: A simple web application for kubernetes
+    digest: e1c44714bafaabc73c6dbab5139740dd3b96fadfbed46963f1afe7db07de36a5
+    name: webapp
+    type: application
+    urls:
+    - https://github.com/sortns/helm/releases/download/webapp-0.0.3/webapp-0.0.3.tgz
+    version: 0.0.3
+  - apiVersion: v2
+    appVersion: 0.1.0
     created: "2023-05-28T15:36:43.117898033Z"
     description: A simple web application for kubernetes
     digest: d867d30635bc8fef7d4de71d50b0b620016f2af52a668ee91d722af21cfbc13c
@@ -11,4 +21,4 @@ entries:
     urls:
     - https://github.com/sortns/helm/releases/download/webapp-0.0.2/webapp-0.0.2.tgz
     version: 0.0.2
-generated: "2023-05-28T15:36:43.118021632Z"
+generated: "2023-05-28T20:37:37.080910237Z"
