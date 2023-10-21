@@ -1,0 +1,128 @@
+nameOverride: ""
+fullnameOverride: ""
+
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+
+deployment:
+  replicaCount: 1
+
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  image:
+    repository: nginx
+    pullPolicy: Always
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: "1.9.1"
+
+  secret:
+    enabled: false
+    # base64 encoded value
+    app_imagePullSecrets_name: nginx-registry
+    app_imagePullSecrets: 
+      - name: nginx-registry
+    app_dockerconfigjson: "ZXdvSkltRjFkR2h6SWpvZ2V3b0pDU0pvZEhSd2N6b3ZMMmx1WkdWNExtUnZZMnRsY2k1cAo=" # fake secret
+
+  ports:
+    enabled: false
+    list:
+      - name: http
+        containerPort: 80
+        protocol: TCP
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+
+  resources: {}
+    # # We usually recommend not to specify default resources and to leave this as a conscious
+    # # choice for the user. This also increases chances charts run on environments with little
+    # # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 50m
+    #   memory: 64Mi
+
+
+  livenessProbe:
+    enabled: false
+    list:
+      httpGet:
+        path: /
+        port: http
+
+  readinessProbe:
+    enabled: false
+    list:
+      httpGet:
+        path: /
+        port: http
+
+  nodeSelector: {}
+  # do not store more than 1 pod per node
+  topology_max_skew: 1
+
+  tolerations: []
+  affinity: {}
+
+  
+hpa:
+  autoscaling: {}
+  #   enabled: false
+  #   minReplicas: 2
+  #   maxReplicas: 20
+  #   targetCPUUtilizationPercentage: 80
+  #   # targetMemoryUtilizationPercentage: 80
+
+
+service:
+  enabled: false
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: 
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+    kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: dev.test.net
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+
+
+
+
+
+
+
