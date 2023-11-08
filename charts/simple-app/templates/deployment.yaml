@@ -54,6 +54,14 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.deployment.resources | nindent 12 }}
+
+          env:
+            - name: APP_VERSION
+              value: {{ .Values.deployment.image.tag | quote }}
+            {{- if .Values.deployment.EnvVars }}
+            {{- toYaml .Values.deployment.EnvVars | nindent 12 }}
+            {{- end }}
+
       {{- with .Values.deployment.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
