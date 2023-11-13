@@ -108,7 +108,11 @@ hpa:
 service:
   enabled: false
   type: ClusterIP
+  name: http
   port: 80
+  targetPort: http
+  protocol: TCP
+  
 
 ingress:
   enabled: false
