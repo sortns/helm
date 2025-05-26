@@ -3,6 +3,16 @@ entries:
   cron-task:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2025-05-26T14:43:38.754441339Z"
+    description: A Helm chart to deploy a CronJob that runs a bash + python script
+      periodically
+    digest: f3a3b9dfb3a98065985ad50ff87e3d5017c59b86022df2a7475655be7ddfdac0
+    name: cron-task
+    urls:
+    - https://github.com/sortns/helm/releases/download/cron-task-0.1.2/cron-task-0.1.2.tgz
+    version: 0.1.2
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2025-05-26T11:56:36.618861619Z"
     description: A Helm chart to deploy a CronJob that runs a bash + python script
       periodically
@@ -83,4 +93,4 @@ entries:
     urls:
     - https://github.com/sortns/helm/releases/download/webapp-0.0.2/webapp-0.0.2.tgz
     version: 0.0.2
-generated: "2025-05-26T11:56:36.618881627Z"
+generated: "2025-05-26T14:43:38.754472828Z"
