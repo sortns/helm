@@ -19,3 +19,12 @@ resources:
   requests:
     memory: "128Mi"
     cpu: "250m"
+
+deployment:
+  secret:
+    enabled: false
+    # base64 encoded value
+    app_imagePullSecrets_name: nginx-registry
+    app_imagePullSecrets: 
+      - name: nginx-registry
+    app_dockerconfigjson: "ZXdvSkltRjFkR2h6SWpvZ2V3b0pDU0pvZEhSd2N6b3ZMMmx1WkdWNExtUnZZMnRsY2k1cAo=" # fake secret
