@@ -15,16 +15,10 @@ spec:
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
               imagePullPolicy: IfNotPresent
               env:
-                - name: LOCAL_DAILY_PATH
-                  value: "{{ .Values.env.LOCAL_DAILY_PATH }}"
-                - name: REMOTE_DAILY_PATH
-                  value: "{{ .Values.env.REMOTE_DAILY_PATH }}"
-                - name: OBSIDIAN_TAG
-                  value: "{{ .Values.env.OBSIDIAN_TAG }}"
-                - name: BOT_TOKEN
-                  value: "{{ .Values.env.BOT_TOKEN }}"
-                - name: CHAT_ID
-                  value: "{{ .Values.env.CHAT_ID }}"
+              {{- range $key, $value := .Values.env }}
+                - name: {{ $key }}
+                  value: "{{ $value }}"
+              {{- end }}
               resources:
                 limits:
                   memory: "{{ .Values.resources.limits.memory }}"
