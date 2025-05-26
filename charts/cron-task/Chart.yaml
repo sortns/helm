@@ -1,0 +1,5 @@
+apiVersion: v2
+name: cron-task
+description: A Helm chart to deploy a CronJob that runs a bash + python script periodically
+version: 0.1.0
+appVersion: "1.0"
