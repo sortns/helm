@@ -8,15 +8,11 @@ spec:
   selector: {{ printf "%s == '%s'" $k $v | quote }}
   types:
     - Ingress
-    - Egress
 
   # 🔑 CRITICAL FLAGS (this is what you were missing)
   preDNAT: true
   applyOnForward: true
   
-  egress:
-    - action: Allow
-
   ingress:
     # 1) Allow ALL traffic from Kubernetes nodes
     - action: Allow

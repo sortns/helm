@@ -1,0 +1,13 @@
+{{- $k := .Values.hostSelectorLabel.key -}}
+{{- $v := .Values.hostSelectorLabel.value -}}
+apiVersion: crd.projectcalico.org/v1
+kind: GlobalNetworkPolicy
+metadata:
+  name: host-egress-allow
+spec:
+  selector: {{ printf "%s == '%s'" $k $v | quote }}
+  types: [Egress]
+  # Make sure this is evaluated after any other host egress restrictions (if any).
+  order: 100
+  egress:
+    - action: Allow
