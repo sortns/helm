@@ -63,12 +63,11 @@ spec:
 apiVersion: projectcalico.org/v3
 kind: GlobalNetworkPolicy
 metadata:
-  name: allow-443-6443-from-specific
+  name: allow-443-from-specific
 spec:
   selector: {{ printf "%s == '%s'" $k $v | quote }}
-  types:
-    - Ingress
-  order: {{ .Values.orders.allow443_6443 }}
+  types: [Ingress]
+  order: {{ .Values.orders.allow6443 }}
   ingress:
     - action: Allow
       protocol: TCP
@@ -78,6 +77,25 @@ spec:
           - {{ . | quote }}
 {{- end }}
       destination:
-        ports:
-          - 443
-          - 6443
+        ports: [443]
+
+
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: allow-6443-from-specific
+spec:
+  selector: {{ printf "%s == '%s'" $k $v | quote }}
+  types: [Ingress]
+  order: {{ .Values.orders.allow6443 }}
+  ingress:
+    - action: Allow
+      protocol: TCP
+      source:
+        nets:
+{{- range .Values.allow443And6443From }}
+          - {{ . | quote }}
+{{- end }}
+      destination:
+        ports: [6443]
+

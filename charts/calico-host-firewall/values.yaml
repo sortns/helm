@@ -35,8 +35,10 @@ allowAllFromLocalNetworks: true
 
 # Policy order (lower first). Keep allow rules < deny rule.
 orders:
-  allowLocal: 10
-  allowNodes: 20
-  allowSSH: 30
-  allow443_6443: 40
+  allowNodes: 10
+  allowSSH: 20
+  allow6443: 30
+  denySSH: 40
+  deny6443: 50
+  allowLocal: 60
   denyExternal: 1000
