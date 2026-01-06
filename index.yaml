@@ -3,6 +3,16 @@ entries:
   calico-host-firewall:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-01-06T12:32:06.977183571Z"
+    description: Calico host endpoint firewall (default deny, explicit allowlist)
+    digest: c0062441f20257cd1ba6bb954b0d467f1d2fa7d25ada669bbfaa2eab4c1c99fb
+    name: calico-host-firewall
+    type: application
+    urls:
+    - https://github.com/sortns/helm/releases/download/calico-host-firewall-0.1.8/calico-host-firewall-0.1.8.tgz
+    version: 0.1.8
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-01-06T12:16:21.576850947Z"
     description: Calico host endpoint firewall (default deny, explicit allowlist)
     digest: 0000a068ccce4d8f13556855015184052a5eb3c0522fb2097fe119eb4f092101
@@ -184,4 +194,4 @@ entries:
     urls:
     - https://github.com/sortns/helm/releases/download/webapp-0.0.2/webapp-0.0.2.tgz
     version: 0.0.2
-generated: "2026-01-06T12:16:21.576926478Z"
+generated: "2026-01-06T12:32:06.977225991Z"
