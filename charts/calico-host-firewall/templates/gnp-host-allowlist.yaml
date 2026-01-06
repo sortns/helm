@@ -8,11 +8,15 @@ spec:
   selector: {{ printf "%s == '%s'" $k $v | quote }}
   types:
     - Ingress
+    - Egress
 
   # 🔑 CRITICAL FLAGS (this is what you were missing)
   preDNAT: true
   applyOnForward: true
   
+  egress:
+    - action: Allow
+
   ingress:
     # 1) Allow ALL traffic from Kubernetes nodes
     - action: Allow
@@ -21,6 +25,12 @@ spec:
 {{- range .Values.allowAllFromNodeIPs }}
           - {{ . | quote }}
 {{- end }}
+
+    # equalent:
+    # 1) Allow ALL node-to-node traffic
+    - action: Allow
+      source:
+        selector: "host == 'protected'"
 
     # 2) Allow SSH and portforward only from admin IPs
     - action: Allow
