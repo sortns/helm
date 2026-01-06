@@ -82,5 +82,15 @@ spec:
         ports:
           - {{ printf "%d:%d" $npMin $npMax | quote }}
 
+    - action: Allow
+      protocol: UDP
+      destination:
+        ports:
+    {{- range .Values.allowUDPforAll }}
+          - {{ . | quote }}
+    {{- end }}
+
+allowUDPforAll
+
     # 5) DENY EVERYTHING ELSE
     - action: Deny

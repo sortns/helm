@@ -25,6 +25,9 @@ allowAllFromNodeIPs:
 allowProxyLoaders:
   - 80.10.10.1/32
 
+allowUDPforAll:
+  - 31820 # wireguard
+
 # "local network" ranges you do NOT want to treat as "external"
 podCidrs:
   - 10.201.0.0/18
