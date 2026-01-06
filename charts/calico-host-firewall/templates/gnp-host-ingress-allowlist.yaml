@@ -22,12 +22,6 @@ spec:
           - {{ . | quote }}
 {{- end }}
 
-    # equalent:
-    # 1) Allow ALL node-to-node traffic
-    - action: Allow
-      source:
-        selector: "host == 'protected'"
-
     # 2) Allow SSH and portforward only from admin IPs
     - action: Allow
       protocol: TCP
@@ -82,6 +76,7 @@ spec:
         ports:
           - {{ printf "%d:%d" $npMin $npMax | quote }}
 
+    # Allow UDP to these ports from anywhere (be careful: this is wide open)
     - action: Allow
       protocol: UDP
       destination:
@@ -90,7 +85,6 @@ spec:
           - {{ . | quote }}
     {{- end }}
 
-allowUDPforAll
 
     # 5) DENY EVERYTHING ELSE
     - action: Deny
