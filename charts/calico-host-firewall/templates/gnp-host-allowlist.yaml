@@ -1,0 +1,59 @@
+{{- $k := .Values.hostSelectorLabel.key -}}
+{{- $v := .Values.hostSelectorLabel.value -}}
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: host-ingress-allowlist
+spec:
+  selector: {{ printf "%s == '%s'" $k $v | quote }}
+  types:
+    - Ingress
+  ingress:
+    # 1) Allow ALL traffic from Kubernetes nodes
+    - action: Allow
+      source:
+        nets:
+{{- range .Values.allowAllFromNodeIPs }}
+          - {{ . | quote }}
+{{- end }}
+
+    # 2) Allow SSH only from admin IPs
+    - action: Allow
+      protocol: TCP
+      source:
+        nets:
+{{- range .Values.allowSSHFrom }}
+          - {{ . | quote }}
+{{- end }}
+      destination:
+        ports:
+          - 22
+
+    # 3) Allow 80, 443, 6443 only from trusted external IP
+    - action: Allow
+      protocol: TCP
+      source:
+        nets:
+{{- range .Values.allowProxyLoaders }}
+          - {{ . | quote }}
+{{- end }}
+      destination:
+        ports:
+          - 80
+          - 443
+          - 6443
+
+    # 4) Allow pods to reach NodePorts (only the NodePort range)
+    - action: Allow
+      protocol: TCP
+      source:
+        nets:
+{{- range .Values.podCidrs }}
+          - {{ . | quote }}
+{{- end }}
+      destination:
+        ports:
+          - {{ printf "%d:%d" .Values.nodePortRange.min .Values.nodePortRange.max | quote }}
+
+    # 5) DENY EVERYTHING ELSE
+    - action: Deny

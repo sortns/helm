@@ -1,6 +1,6 @@
 apiVersion: v2
 name: calico-host-firewall
-description: Host protection policies for Calico using HostEndpoints + GlobalNetworkPolicy
+description: Calico host endpoint firewall (default deny, explicit allowlist)
 type: application
-version: 0.1.3
+version: 0.1.4
 appVersion: "1.0"

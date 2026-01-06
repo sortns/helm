@@ -22,23 +22,15 @@ allowAllFromNodeIPs:
   - 10.10.101.1/32
   - 10.10.101.1/32
 
-allow443And6443From:
+allowProxyLoaders:
   - 80.10.10.1/32
 
 # "local network" ranges you do NOT want to treat as "external"
-localNetworks:
+podCidrs:
   - 10.201.0.0/18
   - 10.201.64.0/18
 
-# Optional: if you want to allow ALL traffic from localNetworks to hosts (recommended)
-allowAllFromLocalNetworks: true
+nodePortRange:
+  min: 30000
+  max: 32767
 
-# Policy order (lower first). Keep allow rules < deny rule.
-orders:
-  allowNodes: 10
-  allowSSH: 20
-  allow6443: 30
-  denySSH: 40
-  deny6443: 50
-  allowLocal: 60
-  denyExternal: 1000
