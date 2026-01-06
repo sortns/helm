@@ -49,6 +49,18 @@ spec:
 
     # Allow pods to reach NodePorts (TCP)
     - action: Allow
+      protocol: TCP
+      source:
+        nets:
+    {{- range .Values.podCidrs }}
+          - {{ . | quote }}
+    {{- end }}
+      destination:
+        ports:
+          - {{ printf "%d:%d" $npMin $npMax | quote }}
+
+    - action: Allow
+      protocol: UDP
       source:
         nets:
     {{- range .Values.podCidrs }}
