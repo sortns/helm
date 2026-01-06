@@ -1,0 +1,14 @@
+{{- $k := .Values.hostSelectorLabel.key -}}
+{{- $v := .Values.hostSelectorLabel.value -}}
+{{- range .Values.nodes }}
+apiVersion: projectcalico.org/v3
+kind: HostEndpoint
+metadata:
+  name: {{ printf "%s-%s" .name .interfaceName | lower | replace "." "-" | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{ $k }}: {{ $v | quote }}
+spec:
+  node: {{ .name | quote }}
+  interfaceName: {{ .interfaceName | quote }}
+---
+{{- end }}

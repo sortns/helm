@@ -1,0 +1,42 @@
+hostSelectorLabel:
+  key: host
+  value: protected
+
+# Create a HostEndpoint per node
+# interfaceName must be the host's real NIC (e.g., eth0, ens3)
+nodes:
+  - name: node01.k8s
+    interfaceName: eth0
+  - name: node11.k8s
+    interfaceName: eth0
+  - name: node12.k8s
+    interfaceName: eth0
+
+# Your requested rules
+allowSSHFrom:
+  - 10.10.10.1/32
+  - 10.10.10.2/32
+
+allowAllFromNodeIPs:
+  - 10.10.101.1/32
+  - 10.10.101.1/32
+  - 10.10.101.1/32
+
+allow443And6443From:
+  - 80.10.10.1/32
+
+# "local network" ranges you do NOT want to treat as "external"
+localNetworks:
+  - 10.201.0.0/18
+  - 10.201.64.0/18
+
+# Optional: if you want to allow ALL traffic from localNetworks to hosts (recommended)
+allowAllFromLocalNetworks: true
+
+# Policy order (lower first). Keep allow rules < deny rule.
+orders:
+  allowLocal: 10
+  allowNodes: 20
+  allowSSH: 30
+  allow443_6443: 40
+  denyExternal: 1000

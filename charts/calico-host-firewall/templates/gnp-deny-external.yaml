@@ -1,0 +1,18 @@
+{{- $k := .Values.hostSelectorLabel.key -}}
+{{- $v := .Values.hostSelectorLabel.value -}}
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: deny-external-to-hosts
+spec:
+  selector: {{ printf "%s == '%s'" $k $v | quote }}
+  types:
+    - Ingress
+  order: {{ .Values.orders.denyExternal }}
+  ingress:
+    - action: Deny
+      source:
+        notNets:
+{{- range .Values.localNetworks }}
+          - {{ . | quote }}
+{{- end }}

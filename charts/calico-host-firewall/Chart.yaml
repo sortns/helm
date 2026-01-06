@@ -1,0 +1,6 @@
+apiVersion: v2
+name: calico-host-firewall
+description: Host protection policies for Calico using HostEndpoints + GlobalNetworkPolicy
+type: application
+version: 0.1.0
+appVersion: "1.0"
