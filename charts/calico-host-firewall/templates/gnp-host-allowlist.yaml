@@ -44,16 +44,19 @@ spec:
           - 6443
 
     # 4) Allow pods to reach NodePorts (only the NodePort range)
+    {{- $npMin := int .Values.nodePortRange.min -}}
+    {{- $npMax := int .Values.nodePortRange.max -}}
+
+    # Allow pods to reach NodePorts (TCP)
     - action: Allow
-      protocol: TCP
       source:
         nets:
-{{- range .Values.podCidrs }}
+    {{- range .Values.podCidrs }}
           - {{ . | quote }}
-{{- end }}
+    {{- end }}
       destination:
         ports:
-          - {{ printf "%d:%d" .Values.nodePortRange.min .Values.nodePortRange.max | quote }}
+          - {{ printf "%d:%d" $npMin $npMax | quote }}
 
     # 5) DENY EVERYTHING ELSE
     - action: Deny
