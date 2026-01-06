@@ -1,5 +1,16 @@
 apiVersion: v1
 entries:
+  calico-host-firewall:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-01-06T07:05:17.651975778Z"
+    description: Host protection policies for Calico using HostEndpoints + GlobalNetworkPolicy
+    digest: 666d7c8ced94df3bb6b7468b60b8442f6f362df0e79964ad183d445a9cc4201a
+    name: calico-host-firewall
+    type: application
+    urls:
+    - https://github.com/sortns/helm/releases/download/calico-host-firewall-0.1.0/calico-host-firewall-0.1.0.tgz
+    version: 0.1.0
   cron-task:
   - apiVersion: v2
     appVersion: "1.0"
@@ -103,4 +114,4 @@ entries:
     urls:
     - https://github.com/sortns/helm/releases/download/webapp-0.0.2/webapp-0.0.2.tgz
     version: 0.0.2
-generated: "2025-05-26T15:01:51.906565426Z"
+generated: "2026-01-06T07:05:17.651996947Z"
