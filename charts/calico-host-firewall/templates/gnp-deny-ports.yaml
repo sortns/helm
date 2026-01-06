@@ -1,18 +1,18 @@
 {{- $k := .Values.hostSelectorLabel.key -}}
 {{- $v := .Values.hostSelectorLabel.value -}}
-# apiVersion: projectcalico.org/v3
-# kind: GlobalNetworkPolicy
-# metadata:
-#   name: deny-ssh-except-explicit-allows
-# spec:
-#   selector: {{ printf "%s == '%s'" $k $v | quote }}
-#   types: [Ingress]
-#   order: {{ .Values.orders.denySSH }}
-#   ingress:
-#     - action: Deny
-#       protocol: TCP
-#       destination:
-#         ports: [22]
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: deny-ssh-except-explicit-allows
+spec:
+  selector: {{ printf "%s == '%s'" $k $v | quote }}
+  types: [Ingress]
+  order: {{ .Values.orders.denySSH }}
+  ingress:
+    - action: Deny
+      protocol: TCP
+      destination:
+        ports: [22]
 ---
 apiVersion: projectcalico.org/v3
 kind: GlobalNetworkPolicy
