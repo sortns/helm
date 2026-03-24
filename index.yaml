@@ -165,6 +165,16 @@ entries:
   simple-app:
   - apiVersion: v2
     appVersion: 0.0.0
+    created: "2026-03-24T12:50:02.079227784Z"
+    description: A simple application for kubernetes
+    digest: 5c9034b648cf3d4c63a51e4410218ba5f61bb287396a89f4ebb161cfe7c6de3b
+    name: simple-app
+    type: application
+    urls:
+    - https://github.com/sortns/helm/releases/download/simple-app-0.0.10/simple-app-0.0.10.tgz
+    version: 0.0.10
+  - apiVersion: v2
+    appVersion: 0.0.0
     created: "2024-06-14T15:41:19.438676509Z"
     description: A simple application for kubernetes
     digest: 510fcc1d47349850feb96402a14dcecba5ffa94a375da98748f96e4a7c7f7c0b
@@ -224,4 +234,4 @@ entries:
     urls:
     - https://github.com/sortns/helm/releases/download/webapp-0.0.2/webapp-0.0.2.tgz
     version: 0.0.2
-generated: "2026-01-06T13:21:38.528273824Z"
+generated: "2026-03-24T12:50:02.079287976Z"
