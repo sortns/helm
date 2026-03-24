@@ -24,6 +24,10 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.deployment.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       serviceAccountName: {{ include "application.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.deployment.podSecurityContext | nindent 8 }}

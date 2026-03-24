@@ -26,6 +26,15 @@ deployment:
     # runAsNonRoot: true
     # runAsUser: 1000
 
+  # Leave empty to inherit Kubernetes default pod DNS behavior.
+  dnsConfig: {}
+    # nameservers:
+    #   - 8.8.8.8
+    #   - 1.1.1.1
+    # options:
+    #   - name: ndots
+    #     value: "1"
+
   image:
     repository: nginx
     pullPolicy: Always
@@ -130,7 +139,6 @@ ingress:
   #  - secretName: chart-example-tls
   #    hosts:
   #      - chart-example.local
-
 
 
 
