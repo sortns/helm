@@ -5,7 +5,7 @@ description: Self-hosted Tailscale control server with optional DERP relay suppo
 type: application
 
 # Chart version — bumped on every chart change
-version: 0.3.0
+version: 0.3.1
 
 # appVersion tracks the upstream headscale release; updated automatically by CI
 appVersion: "0.28.0"

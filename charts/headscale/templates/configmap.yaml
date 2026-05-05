@@ -29,7 +29,7 @@ data:
         region_name: {{ .Values.derp.server.regionName | quote }}
         stun_listen_addr: {{ .Values.derp.server.stunListenAddr | quote }}
         private_key_path: {{ .Values.derp.server.privateKeyPath | quote }}
-        automatically_add_embedded_derp_region: {{ .Values.derp.server.automaticallyAddEmbeddedDerpRegion }}
+        automatically_add_embedded_derp_region: {{ and .Values.derp.server.enabled .Values.derp.server.automaticallyAddEmbeddedDerpRegion }}
         verify_clients: {{ .Values.derp.server.verifyClients }}
         {{- if .Values.derp.server.ipv4 }}
         ipv4: {{ .Values.derp.server.ipv4 | quote }}
