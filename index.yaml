@@ -172,6 +172,26 @@ entries:
     urls:
     - https://github.com/sortns/helm/releases/download/cron-task-0.1.0/cron-task-0.1.0.tgz
     version: 0.1.0
+  headscale:
+  - apiVersion: v2
+    appVersion: 0.23.0
+    created: "2026-05-05T12:02:47.655229383Z"
+    description: Self-hosted Tailscale control server with optional DERP relay support
+    digest: aab66ddb393d59ea30568cf2968617af8ee3adb1f11ba1e828fd1aa7a15091c6
+    home: https://github.com/juanfont/headscale
+    keywords:
+    - headscale
+    - tailscale
+    - vpn
+    - wireguard
+    - derp
+    name: headscale
+    sources:
+    - https://github.com/juanfont/headscale
+    type: application
+    urls:
+    - https://github.com/sortns/helm/releases/download/headscale-0.1.0/headscale-0.1.0.tgz
+    version: 0.1.0
   simple-app:
   - apiVersion: v2
     appVersion: 0.0.0
@@ -244,4 +264,4 @@ entries:
     urls:
     - https://github.com/sortns/helm/releases/download/webapp-0.0.2/webapp-0.0.2.tgz
     version: 0.0.2
-generated: "2026-03-24T12:52:27.362666702Z"
+generated: "2026-05-05T12:02:47.655282352Z"
