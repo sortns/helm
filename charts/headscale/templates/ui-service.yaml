@@ -16,6 +16,7 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
+      appProtocol: http
   selector:
     {{- include "headscale.ui.selectorLabels" . | nindent 4 }}
 {{- end }}

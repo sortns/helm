@@ -95,6 +95,28 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Name of the Secret that holds Headplane credentials (api-key + cookie-secret)
+*/}}
+{{- define "headscale.ui.secretName" -}}
+{{- if .Values.ui.existingSecret -}}
+{{- .Values.ui.existingSecret -}}
+{{- else -}}
+{{- include "headscale.fullname" . }}-ui
+{{- end -}}
+{{- end }}
+
+{{/*
+Internal headscale HTTP URL used by Headplane (defaults to in-cluster service)
+*/}}
+{{- define "headscale.ui.headscaleUrl" -}}
+{{- if .Values.ui.headscaleUrl -}}
+{{- .Values.ui.headscaleUrl -}}
+{{- else -}}
+{{- printf "http://%s:%d" (include "headscale.fullname" .) (int .Values.service.http.port) -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 Name of the Secret that holds headscale private keys
 */}}
 {{- define "headscale.keysSecretName" -}}

@@ -12,10 +12,12 @@ spec:
       {{- include "headscale.ui.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.ui.podAnnotations }}
       annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/ui-configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/ui-secret.yaml") . | sha256sum }}
+        {{- with .Values.ui.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "headscale.ui.selectorLabels" . | nindent 8 }}
     spec:
@@ -23,35 +25,75 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.ui.integration.rbac.create }}
+      serviceAccountName: {{ include "headscale.fullname" . }}-ui
+      {{- end }}
       securityContext:
         runAsNonRoot: true
       containers:
-        - name: headscale-ui
+        - name: headplane
           securityContext:
             {{- toYaml .Values.ui.securityContext | nindent 12 }}
           image: "{{ .Values.ui.image.repository }}:{{ .Values.ui.image.tag }}"
           imagePullPolicy: {{ .Values.ui.image.pullPolicy }}
           env:
-            - name: BASE_PATH
-              value: {{ .Values.ui.basePath | quote }}
+            - name: HEADPLANE_LOAD_ENV_OVERRIDES
+              value: "true"
+            - name: HEADPLANE_HEADSCALE__API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "headscale.ui.secretName" . }}
+                  key: api-key
+            - name: HEADPLANE_SERVER__COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "headscale.ui.secretName" . }}
+                  key: cookie-secret
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 3000
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: {{ .Values.ui.basePath }}/
+              path: /admin
               port: http
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 30
           readinessProbe:
             httpGet:
-              path: {{ .Values.ui.basePath }}/
+              path: /admin
               port: http
-            initialDelaySeconds: 3
+            initialDelaySeconds: 5
             periodSeconds: 10
           resources:
             {{- toYaml .Values.ui.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/headplane/config.yaml
+              subPath: config.yaml
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/headplane
+            {{- if .Values.ui.readHeadscaleConfig }}
+            - name: headscale-config
+              mountPath: /etc/headplane/headscale-config.yaml
+              subPath: headscale-config.yaml
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "headscale.fullname" . }}-ui
+        - name: data
+          emptyDir: {}
+        {{- if .Values.ui.readHeadscaleConfig }}
+        - name: headscale-config
+          configMap:
+            name: {{ include "headscale.fullname" . }}
+            items:
+              - key: config.yaml
+                path: headscale-config.yaml
+        {{- end }}
       {{- with .Values.ui.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -1,0 +1,27 @@
+{{- if .Values.ui.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "headscale.fullname" . }}-ui
+  labels:
+    {{- include "headscale.ui.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    server:
+      host: "0.0.0.0"
+      port: 3000
+      base_url: {{ .Values.ui.baseUrl | quote }}
+      cookie_secure: {{ .Values.ui.cookieSecure }}
+
+    data_path: /var/lib/headplane
+
+    headscale:
+      url: {{ include "headscale.ui.headscaleUrl" . | quote }}
+      {{- if .Values.ui.readHeadscaleConfig }}
+      config_path: /etc/headplane/headscale-config.yaml
+      {{- end }}
+
+    {{- if eq .Values.ui.integration.type "kubernetes" }}
+    kubernetes: {}
+    {{- end }}
+{{- end }}

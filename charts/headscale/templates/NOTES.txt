@@ -22,16 +22,20 @@ Headscale {{ .Chart.AppVersion }} has been deployed.
   kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "headscale.fullname" . }}-grpc 50443:{{ .Values.service.grpc.port }}
 {{- if .Values.ui.enabled }}
 
-4. Headscale UI:
+4. Headplane UI:
 {{- if .Values.ui.ingress.enabled }}
 {{- range .Values.ui.ingress.hosts }}
-  https://{{ .host }}{{ $.Values.ui.basePath }}
+  https://{{ .host }}/admin
 {{- end }}
 {{- else }}
-  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "headscale.fullname" . }}-ui 8888:{{ .Values.ui.service.port }}
-  echo "Visit http://127.0.0.1:8888{{ .Values.ui.basePath }}"
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "headscale.fullname" . }}-ui 3000:{{ .Values.ui.service.port }}
+  echo "Visit http://127.0.0.1:3000/admin"
 {{- end }}
-  NOTE: Point the UI at your headscale server URL: {{ .Values.config.serverUrl }}
+
+  First-time setup — create an API key and add it to your values:
+    kubectl exec -n {{ .Release.Namespace }} deploy/{{ include "headscale.fullname" . }} -- \
+      headscale apikeys create --expiration 90d
+  Then set ui.apiKey (or ui.existingSecret) and helm upgrade.
 {{- end }}
 {{- if .Values.derp.server.enabled }}
 

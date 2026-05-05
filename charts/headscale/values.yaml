@@ -220,27 +220,59 @@ derp:
     tolerations: []
     affinity: {}
 
-# ── Headscale UI ─────────────────────────────────────────────────────────────
-# Deploys goodieshq/headscale-ui — a browser-based management UI.
-# The UI is a static SPA; it talks directly to the headscale API from the
-# browser, so the headscale server_url must be reachable by end-users.
+# ── Headplane UI ─────────────────────────────────────────────────────────────
+# Deploys Headplane (https://github.com/tale/headplane) — a full-featured
+# headscale admin UI. Served at /admin. Requires headscale >= 0.26.0.
 
 ui:
   enabled: false
 
   image:
-    repository: ghcr.io/goodieshq/headscale-ui
+    repository: ghcr.io/tale/headplane
     tag: "latest"
     pullPolicy: IfNotPresent
 
-  # URL path the UI is served under. Must match the ingress path.
-  basePath: "/web"
+  # Public URL where Headplane itself is reachable (used for cookie domain and
+  # OAuth callbacks). Must NOT have a trailing slash.
+  baseUrl: "https://headplane.example.com"
+
+  # Internal URL to the headscale HTTP API. Defaults to the headscale service
+  # in the same namespace when left empty.
+  headscaleUrl: ""
+
+  # Headscale API key — generate with:
+  #   kubectl exec -n <ns> deploy/<release> -- headscale apikeys create --expiration 90d
+  # Leave empty and set existingSecret instead when using external secret management.
+  apiKey: ""
+
+  # 32-character secret for session cookie signing.
+  # Generate with: openssl rand -hex 16
+  cookieSecret: ""
+
+  # Reference a pre-existing Secret instead of creating one from the inline
+  # values above. Must contain keys: api-key, cookie-secret
+  existingSecret: ""
+
+  # Set false only when running without TLS (local testing)
+  cookieSecure: true
+
+  # Mount headscale's ConfigMap into Headplane so it can read the headscale
+  # config for deeper feature integration (routes, DNS, etc.)
+  readHeadscaleConfig: false
+
+  # Kubernetes integration — Headplane reads pod status and validates manifests
+  # against the live cluster. Requires RBAC resources (set rbac.create: true).
+  integration:
+    type: "none"   # none | kubernetes
+    rbac:
+      create: false
 
   podAnnotations: {}
 
   securityContext:
     runAsNonRoot: true
-    runAsUser: 101   # nginx default non-root user
+    runAsUser: 65532   # distroless nonroot uid
+    runAsGroup: 65532
     allowPrivilegeEscalation: false
     capabilities:
       drop:
@@ -248,7 +280,7 @@ ui:
 
   service:
     type: ClusterIP
-    port: 80
+    port: 3000
     annotations: {}
 
   ingress:
@@ -256,19 +288,19 @@ ui:
     className: ""
     annotations: {}
     hosts:
-      - host: headscale.example.com
+      - host: headplane.example.com
         paths:
-          - path: /web
+          - path: /admin
             pathType: Prefix
     tls: []
 
   resources:
     limits:
-      cpu: 100m
-      memory: 64Mi
+      cpu: 200m
+      memory: 128Mi
     requests:
-      cpu: 10m
-      memory: 32Mi
+      cpu: 50m
+      memory: 64Mi
 
   nodeSelector: {}
   tolerations: []
