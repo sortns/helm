@@ -117,17 +117,25 @@ data:
 
     {{- if .Values.config.oidc.enabled }}
     oidc:
-      only_start_if_oidc_is_available: true
+      only_start_if_oidc_is_available: {{ .Values.config.oidc.onlyStartIfOidcIsAvailable }}
       issuer: {{ .Values.config.oidc.issuer | quote }}
       client_id: {{ .Values.config.oidc.clientId | quote }}
+      {{- if .Values.config.oidc.clientSecretPath }}
+      client_secret_path: {{ .Values.config.oidc.clientSecretPath | quote }}
+      {{- else }}
       client_secret: {{ .Values.config.oidc.clientSecret | quote }}
+      {{- end }}
       expiry: {{ .Values.config.oidc.expiry | quote }}
       use_expiry_from_token: {{ .Values.config.oidc.useExpiryFromToken }}
       scope: {{ .Values.config.oidc.scope | toJson }}
-      allowed_domains: {{ .Values.config.oidc.allowedDomains | toJson }}
-      allowed_orgs: {{ .Values.config.oidc.allowedOrgs | toJson }}
-      allowed_users: {{ .Values.config.oidc.allowedUsers | toJson }}
       email_verified_required: {{ .Values.config.oidc.emailVerifiedRequired }}
+      extra_params: {{ .Values.config.oidc.extraParams | toJson }}
+      allowed_domains: {{ .Values.config.oidc.allowedDomains | toJson }}
+      allowed_users: {{ .Values.config.oidc.allowedUsers | toJson }}
+      allowed_groups: {{ concat .Values.config.oidc.allowedGroups .Values.config.oidc.allowedOrgs | toJson }}
+      pkce:
+        enabled: {{ .Values.config.oidc.pkce.enabled }}
+        method: {{ .Values.config.oidc.pkce.method | quote }}
     {{- end }}
 
     {{- if .Values.config.extraConfig }}

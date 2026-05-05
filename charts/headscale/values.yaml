@@ -118,17 +118,29 @@ config:
   # OIDC SSO (optional)
   oidc:
     enabled: false
+    onlyStartIfOidcIsAvailable: true
     issuer: ""
     clientId: ""
     clientSecret: ""
+    # Alternatively, read the client secret from a mounted file.
+    # Mutually exclusive with clientSecret.
+    clientSecretPath: ""
     expiry: "180d"
     useExpiryFromToken: false
     scope: ["openid", "profile", "email"]
-    allowedDomains: []
-    allowedOrgs: []
-    allowedUsers: []
     # Require the OIDC provider to have verified the user's email (v0.28+)
     emailVerifiedRequired: true
+    # Extra key/value pairs sent to the identity provider authorization endpoint.
+    extraParams: {}
+    allowedDomains: []
+    allowedUsers: []
+    # Requires the OIDC groups scope/claim when used.
+    allowedGroups: []
+    # Deprecated: use allowedGroups. Kept for compatibility with older chart values.
+    allowedOrgs: []
+    pkce:
+      enabled: false
+      method: "S256"
 
   # Misc
   ephemeralNodeInactivityTimeout: "30m"
