@@ -74,17 +74,18 @@ data:
       format: {{ .Values.config.log.format | quote }}
       level: {{ .Values.config.log.level | quote }}
 
-    dns_config:
-      nameservers:
-        {{- range .Values.config.dns.nameservers }}
-        - {{ . | quote }}
-        {{- end }}
-      domains:
-        {{- range .Values.config.dns.domains }}
-        - {{ . | quote }}
-        {{- end }}
+    dns:
       magic_dns: {{ .Values.config.dns.magicDns }}
       base_domain: {{ .Values.config.dns.baseDomain | quote }}
+      nameservers:
+        global:
+          {{- range .Values.config.dns.nameservers.global }}
+          - {{ . | quote }}
+          {{- end }}
+      search_domains:
+        {{- range .Values.config.dns.searchDomains }}
+        - {{ . | quote }}
+        {{- end }}
 
     {{- if .Values.config.aclPolicyPath }}
     acls_policy_path: {{ .Values.config.aclPolicyPath | quote }}

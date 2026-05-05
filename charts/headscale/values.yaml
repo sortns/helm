@@ -78,11 +78,12 @@ config:
 
   # DNS configuration
   dns:
-    nameservers:
-      - "8.8.8.8"
-    domains: []
     magicDns: true
     baseDomain: "example.ts.net"
+    nameservers:
+      global:
+        - "8.8.8.8"
+    searchDomains: []
 
   # ACL policy file path (mount via extraVolumes if needed)
   aclPolicyPath: ""
