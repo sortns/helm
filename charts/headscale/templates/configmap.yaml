@@ -30,6 +30,7 @@ data:
         stun_listen_addr: {{ .Values.derp.server.stunListenAddr | quote }}
         private_key_path: {{ .Values.derp.server.privateKeyPath | quote }}
         automatically_add_embedded_derp_region: {{ .Values.derp.server.automaticallyAddEmbeddedDerpRegion }}
+        verify_clients: {{ .Values.derp.server.verifyClients }}
         {{- if .Values.derp.server.ipv4 }}
         ipv4: {{ .Values.derp.server.ipv4 | quote }}
         {{- end }}
@@ -51,6 +52,14 @@ data:
     ephemeral_node_inactivity_timeout: {{ .Values.config.ephemeralNodeInactivityTimeout | quote }}
     node_update_check_interval: {{ .Values.config.nodeUpdateCheckInterval | quote }}
     randomize_client_port: {{ .Values.config.randomizeClientPort }}
+
+    taildrop:
+      enabled: {{ .Values.config.taildrop.enabled }}
+
+    tuning:
+      notifier_send_timeout: {{ .Values.config.tuning.notifierSendTimeout | quote }}
+      batch_change_delay: {{ .Values.config.tuning.batchChangeDelay | quote }}
+      node_mapsession_buffered_chan_size: {{ .Values.config.tuning.nodeMapSessionBufferedChanSize }}
 
     database:
       type: {{ .Values.config.database.type | quote }}
@@ -86,6 +95,9 @@ data:
         {{- range .Values.config.dns.searchDomains }}
         - {{ . | quote }}
         {{- end }}
+      {{- if .Values.config.dns.extraRecordsPath }}
+      extra_records_path: {{ .Values.config.dns.extraRecordsPath | quote }}
+      {{- end }}
 
     {{- if .Values.config.aclPolicyPath }}
     acls_policy_path: {{ .Values.config.aclPolicyPath | quote }}
@@ -115,7 +127,7 @@ data:
       allowed_domains: {{ .Values.config.oidc.allowedDomains | toJson }}
       allowed_orgs: {{ .Values.config.oidc.allowedOrgs | toJson }}
       allowed_users: {{ .Values.config.oidc.allowedUsers | toJson }}
-      strip_email_domain: {{ .Values.config.oidc.stripEmailDomain }}
+      email_verified_required: {{ .Values.config.oidc.emailVerifiedRequired }}
     {{- end }}
 
     {{- if .Values.config.extraConfig }}

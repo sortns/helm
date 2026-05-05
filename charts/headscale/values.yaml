@@ -84,6 +84,8 @@ config:
       global:
         - "8.8.8.8"
     searchDomains: []
+    # Path to a JSON file with extra DNS records served to nodes (optional)
+    extraRecordsPath: ""
 
   # ACL policy file path (mount via extraVolumes if needed)
   aclPolicyPath: ""
@@ -125,13 +127,24 @@ config:
     allowedDomains: []
     allowedOrgs: []
     allowedUsers: []
-    stripEmailDomain: true
+    # Require the OIDC provider to have verified the user's email (v0.28+)
+    emailVerifiedRequired: true
 
   # Misc
   ephemeralNodeInactivityTimeout: "30m"
   nodeUpdateCheckInterval: "10s"
   disableCheckUpdates: true
   randomizeClientPort: false
+
+  # Taildrop — peer-to-peer file sharing (v0.28+)
+  taildrop:
+    enabled: true
+
+  # Tuning — advanced performance knobs (v0.28+)
+  tuning:
+    notifierSendTimeout: "5s"
+    batchChangeDelay: "800ms"
+    nodeMapSessionBufferedChanSize: 30
 
   # Additional raw config keys merged into the rendered config
   # Use for options not yet exposed above. Accepts a YAML object.
@@ -152,6 +165,8 @@ derp:
     stunListenAddr: "0.0.0.0:3478"
     privateKeyPath: "/var/lib/headscale/derp_server_private.key"
     automaticallyAddEmbeddedDerpRegion: true
+    # Reject DERP connections from nodes not in this headscale instance (v0.27+)
+    verifyClients: false
 
   # External DERP map URLs (Tailscale default map is included when non-empty)
   urls:

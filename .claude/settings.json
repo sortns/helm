@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(helm version *)",
-      "Bash(helm template *)",
-      "Bash(helm lint *)"
-    ]
-  }
-}
