@@ -20,6 +20,19 @@ Headscale {{ .Chart.AppVersion }} has been deployed.
 
 3. Access the gRPC API (for headscale CLI):
   kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "headscale.fullname" . }}-grpc 50443:{{ .Values.service.grpc.port }}
+{{- if .Values.ui.enabled }}
+
+4. Headscale UI:
+{{- if .Values.ui.ingress.enabled }}
+{{- range .Values.ui.ingress.hosts }}
+  https://{{ .host }}{{ $.Values.ui.basePath }}
+{{- end }}
+{{- else }}
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "headscale.fullname" . }}-ui 8888:{{ .Values.ui.service.port }}
+  echo "Visit http://127.0.0.1:8888{{ .Values.ui.basePath }}"
+{{- end }}
+  NOTE: Point the UI at your headscale server URL: {{ .Values.config.serverUrl }}
+{{- end }}
 {{- if .Values.derp.server.enabled }}
 
 4. Embedded DERP server is ENABLED on port {{ .Values.service.stun.port }} (UDP/STUN).

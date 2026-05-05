@@ -81,6 +81,20 @@ Image tag — defaults to chart appVersion
 {{- end }}
 
 {{/*
+UI labels
+*/}}
+{{- define "headscale.ui.labels" -}}
+helm.sh/chart: {{ include "headscale.chart" . }}
+{{ include "headscale.ui.selectorLabels" . }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{- define "headscale.ui.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "headscale.name" . }}-ui
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
 Name of the Secret that holds headscale private keys
 */}}
 {{- define "headscale.keysSecretName" -}}

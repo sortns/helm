@@ -220,6 +220,60 @@ derp:
     tolerations: []
     affinity: {}
 
+# ── Headscale UI ─────────────────────────────────────────────────────────────
+# Deploys goodieshq/headscale-ui — a browser-based management UI.
+# The UI is a static SPA; it talks directly to the headscale API from the
+# browser, so the headscale server_url must be reachable by end-users.
+
+ui:
+  enabled: false
+
+  image:
+    repository: ghcr.io/goodieshq/headscale-ui
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  # URL path the UI is served under. Must match the ingress path.
+  basePath: "/web"
+
+  podAnnotations: {}
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 101   # nginx default non-root user
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+  service:
+    type: ClusterIP
+    port: 80
+    annotations: {}
+
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: headscale.example.com
+        paths:
+          - path: /web
+            pathType: Prefix
+    tls: []
+
+  resources:
+    limits:
+      cpu: 100m
+      memory: 64Mi
+    requests:
+      cpu: 10m
+      memory: 32Mi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
 # ── Services ─────────────────────────────────────────────────────────────────
 
 service:
