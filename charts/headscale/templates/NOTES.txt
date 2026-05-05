@@ -1,0 +1,34 @@
+Headscale {{ .Chart.AppVersion }} has been deployed.
+
+1. Get the headscale URL:
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+  https://{{ .host }}
+{{- end }}
+{{- else if eq .Values.service.http.type "LoadBalancer" }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "headscale.fullname" . }} -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+  echo "http://$SERVICE_IP:{{ .Values.service.http.port }}"
+{{- else }}
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "headscale.fullname" . }} 8080:{{ .Values.service.http.port }}
+  echo "Visit http://127.0.0.1:8080"
+{{- end }}
+
+2. Create a user and pre-auth key:
+  kubectl exec -n {{ .Release.Namespace }} deploy/{{ include "headscale.fullname" . }} -- headscale users create myuser
+  kubectl exec -n {{ .Release.Namespace }} deploy/{{ include "headscale.fullname" . }} -- headscale preauthkeys create --user myuser --reusable --expiration 24h
+
+3. Access the gRPC API (for headscale CLI):
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "headscale.fullname" . }}-grpc 50443:{{ .Values.service.grpc.port }}
+{{- if .Values.derp.server.enabled }}
+
+4. Embedded DERP server is ENABLED on port {{ .Values.service.stun.port }} (UDP/STUN).
+   Make sure your stun service is reachable externally:
+   kubectl --namespace {{ .Release.Namespace }} get svc {{ include "headscale.fullname" . }}-stun
+{{- end }}
+{{- if .Values.derp.standalone.enabled }}
+
+5. Standalone DERP relay is ENABLED.
+   External address: {{ .Values.derp.standalone.hostname }}:{{ .Values.derp.standalone.service.httpsPort }}
+   kubectl --namespace {{ .Release.Namespace }} get svc {{ include "headscale.fullname" . }}-derp
+{{- end }}

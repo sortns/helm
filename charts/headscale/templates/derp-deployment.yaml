@@ -1,0 +1,83 @@
+{{- if .Values.derp.standalone.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "headscale.fullname" . }}-derp
+  labels:
+    {{- include "headscale.derp.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "headscale.derp.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "headscale.derp.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: false
+      containers:
+        - name: derper
+          image: "{{ .Values.derp.standalone.image.repository }}:{{ .Values.derp.standalone.image.tag }}"
+          imagePullPolicy: {{ .Values.derp.standalone.image.pullPolicy }}
+          args:
+            - --hostname={{ .Values.derp.standalone.hostname }}
+            {{- if eq .Values.derp.standalone.certMode "letsencrypt" }}
+            - --certmode=letsencrypt
+            - --certdir=/data/certs
+            {{- else if eq .Values.derp.standalone.certMode "manual" }}
+            - --certmode=manual
+            - --certdir=/data/certs
+            {{- end }}
+            - --stun-port={{ .Values.derp.standalone.service.stunPort }}
+            {{- if .Values.derp.standalone.verifyClients }}
+            - --verify-clients=true
+            {{- end }}
+          ports:
+            - name: https
+              containerPort: 443
+              protocol: TCP
+            - name: stun
+              containerPort: {{ .Values.derp.standalone.service.stunPort }}
+              protocol: UDP
+          livenessProbe:
+            tcpSocket:
+              port: https
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.derp.standalone.resources | nindent 12 }}
+          volumeMounts:
+            - name: derp-data
+              mountPath: /data/certs
+            {{- if eq .Values.derp.standalone.certMode "manual" }}
+            - name: derp-tls
+              mountPath: /data/certs
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: derp-data
+          emptyDir: {}
+        {{- if and (eq .Values.derp.standalone.certMode "manual") .Values.derp.standalone.certSecret }}
+        - name: derp-tls
+          secret:
+            secretName: {{ .Values.derp.standalone.certSecret }}
+        {{- end }}
+      {{- with .Values.derp.standalone.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.derp.standalone.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.derp.standalone.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

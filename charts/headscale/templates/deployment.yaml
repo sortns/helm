@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "headscale.fullname" . }}
+  labels:
+    {{- include "headscale.labels" . | nindent 4 }}
+spec:
+  # Headscale does not support horizontal scaling with shared SQLite.
+  # Use replicas: 1 unless you configured an external Postgres database.
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "headscale.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/keys: {{ include (print $.Template.BasePath "/secret-keys.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "headscale.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "headscale.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        # Ensure the data and socket directories exist with correct ownership
+        - name: init-dirs
+          image: busybox:1.36
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /var/lib/headscale /var/run/headscale
+              chown -R 65534:65534 /var/lib/headscale /var/run/headscale
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/headscale
+            - name: run
+              mountPath: /var/run/headscale
+      containers:
+        - name: headscale
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ include "headscale.imageTag" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - headscale
+            - serve
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: grpc
+              containerPort: 50443
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+            {{- if .Values.derp.server.enabled }}
+            - name: stun
+              containerPort: 3478
+              protocol: UDP
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/headscale/config.yaml
+              subPath: config.yaml
+              readOnly: true
+            - name: keys
+              mountPath: /etc/headscale/keys
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/headscale
+            - name: run
+              mountPath: /var/run/headscale
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "headscale.fullname" . }}
+        - name: keys
+          secret:
+            secretName: {{ include "headscale.keysSecretName" . }}
+            defaultMode: 0400
+        - name: data
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

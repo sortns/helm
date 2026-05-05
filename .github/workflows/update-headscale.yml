@@ -1,0 +1,88 @@
+name: Update headscale chart version
+
+on:
+  schedule:
+    # Run daily at 07:00 UTC
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch latest headscale release
+        id: upstream
+        run: |
+          TAG=$(curl -sSf \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/juanfont/headscale/releases/latest \
+            | jq -r .tag_name)
+          # strip leading 'v'
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Read current chart version
+        id: current
+        run: |
+          APP=$(grep '^appVersion:' charts/headscale/Chart.yaml \
+            | sed 's/appVersion: //; s/"//g; s/ //g')
+          CHART=$(grep '^version:' charts/headscale/Chart.yaml \
+            | sed 's/version: //; s/"//g; s/ //g')
+          echo "appVersion=$APP" >> "$GITHUB_OUTPUT"
+          echo "chartVersion=$CHART" >> "$GITHUB_OUTPUT"
+
+      - name: Bump chart when upstream is newer
+        id: bump
+        if: steps.upstream.outputs.version != steps.current.outputs.appVersion
+        run: |
+          NEW_APP="${{ steps.upstream.outputs.version }}"
+
+          # Bump chart patch version (e.g. 0.1.0 → 0.1.1)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${{ steps.current.outputs.chartVersion }}"
+          NEW_CHART="$MAJOR.$MINOR.$((PATCH + 1))"
+
+          # Update Chart.yaml
+          sed -i "s/^appVersion: .*/appVersion: \"$NEW_APP\"/" charts/headscale/Chart.yaml
+          sed -i "s/^version: .*/version: $NEW_CHART/" charts/headscale/Chart.yaml
+
+          # Update default image tag in values.yaml
+          # Replaces the line '  tag: "X.Y.Z"' that immediately follows 'repository: headscale/headscale'
+          awk -v new="$NEW_APP" '
+            /repository: headscale\/headscale/ { found=1 }
+            found && /^  tag:/ { sub(/".*"/, "\"" new "\""); found=0 }
+            { print }
+          ' charts/headscale/values.yaml > /tmp/values.yaml && mv /tmp/values.yaml charts/headscale/values.yaml
+
+          echo "newAppVersion=$NEW_APP" >> "$GITHUB_OUTPUT"
+          echo "newChartVersion=$NEW_CHART" >> "$GITHUB_OUTPUT"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Open pull request
+        if: steps.bump.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(headscale): update to v${{ steps.bump.outputs.newAppVersion }}"
+          branch: "chore/headscale-${{ steps.bump.outputs.newAppVersion }}"
+          delete-branch: true
+          title: "chore(headscale): update to v${{ steps.bump.outputs.newAppVersion }}"
+          body: |
+            Automated version bump for the **headscale** Helm chart.
+
+            | | Before | After |
+            |---|---|---|
+            | appVersion | `${{ steps.current.outputs.appVersion }}` | `${{ steps.bump.outputs.newAppVersion }}` |
+            | chart version | `${{ steps.current.outputs.chartVersion }}` | `${{ steps.bump.outputs.newChartVersion }}` |
+
+            Release notes: https://github.com/juanfont/headscale/releases/tag/${{ steps.upstream.outputs.tag }}
+          labels: |
+            automated
+            headscale

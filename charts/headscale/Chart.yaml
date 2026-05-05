@@ -1,0 +1,22 @@
+apiVersion: v2
+name: headscale
+description: Self-hosted Tailscale control server with optional DERP relay support
+
+type: application
+
+# Chart version — bumped on every chart change
+version: 0.1.0
+
+# appVersion tracks the upstream headscale release; updated automatically by CI
+appVersion: "0.23.0"
+
+keywords:
+  - headscale
+  - tailscale
+  - vpn
+  - wireguard
+  - derp
+
+home: https://github.com/juanfont/headscale
+sources:
+  - https://github.com/juanfont/headscale

@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "headscale.fullname" . }}
+  labels:
+    {{- include "headscale.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    server_url: {{ .Values.config.serverUrl | quote }}
+    listen_addr: {{ .Values.config.listenAddr | quote }}
+    metrics_listen_addr: {{ .Values.config.metricsListenAddr | quote }}
+    grpc_listen_addr: {{ .Values.config.grpcListenAddr | quote }}
+    grpc_allow_insecure: {{ .Values.config.grpcAllowInsecure }}
+
+    private_key_path: "/etc/headscale/keys/{{ .Values.keys.secretKeys.privateKey }}"
+    noise:
+      private_key_path: "/etc/headscale/keys/{{ .Values.keys.secretKeys.noisePrivateKey }}"
+
+    prefixes:
+      v4: {{ .Values.config.prefixes.v4 | quote }}
+      v6: {{ .Values.config.prefixes.v6 | quote }}
+      allocation: {{ .Values.config.prefixes.allocation | quote }}
+
+    derp:
+      server:
+        enabled: {{ .Values.derp.server.enabled }}
+        region_id: {{ .Values.derp.server.regionId }}
+        region_code: {{ .Values.derp.server.regionCode | quote }}
+        region_name: {{ .Values.derp.server.regionName | quote }}
+        stun_listen_addr: {{ .Values.derp.server.stunListenAddr | quote }}
+        private_key_path: {{ .Values.derp.server.privateKeyPath | quote }}
+        automatically_add_embedded_derp_region: {{ .Values.derp.server.automaticallyAddEmbeddedDerpRegion }}
+        {{- if .Values.derp.server.ipv4 }}
+        ipv4: {{ .Values.derp.server.ipv4 | quote }}
+        {{- end }}
+        {{- if .Values.derp.server.ipv6 }}
+        ipv6: {{ .Values.derp.server.ipv6 | quote }}
+        {{- end }}
+      urls:
+        {{- range .Values.derp.urls }}
+        - {{ . | quote }}
+        {{- end }}
+      paths:
+        {{- range .Values.derp.paths }}
+        - {{ . | quote }}
+        {{- end }}
+      auto_update_enabled: {{ .Values.derp.autoUpdateEnabled }}
+      update_frequency: {{ .Values.derp.updateFrequency | quote }}
+
+    disable_check_updates: {{ .Values.config.disableCheckUpdates }}
+    ephemeral_node_inactivity_timeout: {{ .Values.config.ephemeralNodeInactivityTimeout | quote }}
+    node_update_check_interval: {{ .Values.config.nodeUpdateCheckInterval | quote }}
+    randomize_client_port: {{ .Values.config.randomizeClientPort }}
+
+    database:
+      type: {{ .Values.config.database.type | quote }}
+      {{- if eq .Values.config.database.type "sqlite" }}
+      sqlite:
+        path: {{ .Values.config.database.sqlite.path | quote }}
+      {{- else if eq .Values.config.database.type "postgres" }}
+      postgres:
+        host: {{ .Values.config.database.postgres.host | quote }}
+        port: {{ .Values.config.database.postgres.port }}
+        name: {{ .Values.config.database.postgres.name | quote }}
+        user: {{ .Values.config.database.postgres.user | quote }}
+        pass: {{ .Values.config.database.postgres.password | quote }}
+        max_open_conns: {{ .Values.config.database.postgres.maxOpenConns }}
+        max_idle_conns: {{ .Values.config.database.postgres.maxIdleConns }}
+        conn_max_idle_time_secs: {{ .Values.config.database.postgres.connMaxIdleTimeSecs }}
+        ssl: {{ .Values.config.database.postgres.ssl }}
+      {{- end }}
+
+    log:
+      format: {{ .Values.config.log.format | quote }}
+      level: {{ .Values.config.log.level | quote }}
+
+    dns_config:
+      nameservers:
+        {{- range .Values.config.dns.nameservers }}
+        - {{ . | quote }}
+        {{- end }}
+      domains:
+        {{- range .Values.config.dns.domains }}
+        - {{ . | quote }}
+        {{- end }}
+      magic_dns: {{ .Values.config.dns.magicDns }}
+      base_domain: {{ .Values.config.dns.baseDomain | quote }}
+
+    {{- if .Values.config.aclPolicyPath }}
+    acls_policy_path: {{ .Values.config.aclPolicyPath | quote }}
+    {{- end }}
+
+    tls_letsencrypt_hostname: {{ .Values.config.tls.letsencryptHostname | quote }}
+    tls_letsencrypt_email: {{ .Values.config.tls.letsencryptEmail | quote }}
+    tls_letsencrypt_challenge_type: {{ .Values.config.tls.letsencryptChallengeType | quote }}
+    tls_cert_path: {{ .Values.config.tls.certPath | quote }}
+    tls_key_path: {{ .Values.config.tls.keyPath | quote }}
+
+    unix_socket: /var/run/headscale/headscale.sock
+    unix_socket_permission: "0770"
+
+    logtail:
+      enabled: false
+
+    {{- if .Values.config.oidc.enabled }}
+    oidc:
+      only_start_if_oidc_is_available: true
+      issuer: {{ .Values.config.oidc.issuer | quote }}
+      client_id: {{ .Values.config.oidc.clientId | quote }}
+      client_secret: {{ .Values.config.oidc.clientSecret | quote }}
+      expiry: {{ .Values.config.oidc.expiry | quote }}
+      use_expiry_from_token: {{ .Values.config.oidc.useExpiryFromToken }}
+      scope: {{ .Values.config.oidc.scope | toJson }}
+      allowed_domains: {{ .Values.config.oidc.allowedDomains | toJson }}
+      allowed_orgs: {{ .Values.config.oidc.allowedOrgs | toJson }}
+      allowed_users: {{ .Values.config.oidc.allowedUsers | toJson }}
+      strip_email_domain: {{ .Values.config.oidc.stripEmailDomain }}
+    {{- end }}
+
+    {{- if .Values.config.extraConfig }}
+    {{- .Values.config.extraConfig | toYaml | nindent 4 }}
+    {{- end }}

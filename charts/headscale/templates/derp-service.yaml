@@ -1,0 +1,25 @@
+{{- if .Values.derp.standalone.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "headscale.fullname" . }}-derp
+  labels:
+    {{- include "headscale.derp.labels" . | nindent 4 }}
+  {{- with .Values.derp.standalone.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.derp.standalone.service.type }}
+  ports:
+    - name: https
+      port: {{ .Values.derp.standalone.service.httpsPort }}
+      targetPort: https
+      protocol: TCP
+    - name: stun
+      port: {{ .Values.derp.standalone.service.stunPort }}
+      targetPort: stun
+      protocol: UDP
+  selector:
+    {{- include "headscale.derp.selectorLabels" . | nindent 4 }}
+{{- end }}

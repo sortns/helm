@@ -1,0 +1,263 @@
+# Default values for headscale.
+
+image:
+  repository: headscale/headscale
+  pullPolicy: IfNotPresent
+  # Overrides the image tag — default is chart appVersion
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+# ── Private key storage ───────────────────────────────────────────────────────
+# Keys are mounted from a Kubernetes Secret (not a PVC) at /etc/headscale/keys/.
+# Use an externally managed secret (e.g. Sealed Secrets, External Secrets Operator)
+# and set existingSecret, or provide the raw PEM content below to let the chart
+# create a Secret for you.
+keys:
+  # Name of an existing Secret to use. Must contain the keys named in secretKeys.
+  existingSecret: ""
+
+  # Key names inside the Secret
+  secretKeys:
+    privateKey: "private.key"
+    noisePrivateKey: "noise_private.key"
+
+  # Inline PEM content. Only used when existingSecret is empty.
+  # The chart will create a Secret named <fullname>-keys.
+  privateKey: ""
+  noisePrivateKey: ""
+
+podSecurityContext:
+  fsGroup: 65534
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# ── Headscale application configuration ─────────────────────────────────────
+
+config:
+  # Public URL headscale is reachable at (required)
+  serverUrl: "https://headscale.example.com"
+
+  # HTTP listen address inside the container
+  listenAddr: "0.0.0.0:8080"
+
+  # Prometheus metrics endpoint
+  metricsListenAddr: "0.0.0.0:9090"
+
+  # gRPC listen address (used by headscale CLI)
+  grpcListenAddr: "0.0.0.0:50443"
+  grpcAllowInsecure: false
+
+  # IP prefixes assigned to nodes
+  prefixes:
+    v4: "100.64.0.0/10"
+    v6: "fd7a:115c:a1e0::/48"
+    allocation: "sequential"  # sequential | random
+
+  # Log configuration
+  log:
+    format: text   # text | json
+    level: info
+
+  # DNS configuration
+  dns:
+    nameservers:
+      - "8.8.8.8"
+    domains: []
+    magicDns: true
+    baseDomain: "example.ts.net"
+
+  # ACL policy file path (mount via extraVolumes if needed)
+  aclPolicyPath: ""
+
+  # Database
+  database:
+    type: sqlite   # sqlite | postgres
+    sqlite:
+      path: "/var/lib/headscale/db.sqlite"
+    # Used when type is postgres
+    postgres:
+      host: ""
+      port: 5432
+      name: "headscale"
+      user: "headscale"
+      password: ""
+      maxOpenConns: 10
+      maxIdleConns: 10
+      connMaxIdleTimeSecs: 3600
+      ssl: false
+
+  # TLS (usually handled by an Ingress; leave blank to disable)
+  tls:
+    letsencryptHostname: ""
+    letsencryptEmail: ""
+    letsencryptChallengeType: "HTTP-01"
+    certPath: ""
+    keyPath: ""
+
+  # OIDC SSO (optional)
+  oidc:
+    enabled: false
+    issuer: ""
+    clientId: ""
+    clientSecret: ""
+    expiry: "180d"
+    useExpiryFromToken: false
+    scope: ["openid", "profile", "email"]
+    allowedDomains: []
+    allowedOrgs: []
+    allowedUsers: []
+    stripEmailDomain: true
+
+  # Misc
+  ephemeralNodeInactivityTimeout: "30m"
+  nodeUpdateCheckInterval: "10s"
+  disableCheckUpdates: true
+  randomizeClientPort: false
+
+  # Additional raw config keys merged into the rendered config
+  # Use for options not yet exposed above. Accepts a YAML object.
+  extraConfig: {}
+
+# ── DERP configuration ───────────────────────────────────────────────────────
+
+derp:
+  # Embedded DERP server built into headscale
+  server:
+    enabled: false
+    regionId: 999
+    regionCode: "headscale"
+    regionName: "Headscale Embedded DERP"
+    # Public IPv4/IPv6 of this node (required when embedded DERP is enabled)
+    ipv4: ""
+    ipv6: ""
+    stunListenAddr: "0.0.0.0:3478"
+    privateKeyPath: "/var/lib/headscale/derp_server_private.key"
+    automaticallyAddEmbeddedDerpRegion: true
+
+  # External DERP map URLs (Tailscale default map is included when non-empty)
+  urls:
+    - "https://controlplane.tailscale.com/derpmap/default"
+
+  # Paths to locally-mounted DERP map JSON files
+  paths: []
+
+  autoUpdateEnabled: true
+  updateFrequency: "24h"
+
+  # ── Standalone DERP relay (separate Deployment + Service) ─────────────────
+  # Deploys Tailscale's official derper binary alongside headscale.
+  # Useful when you want a dedicated relay without embedding it in headscale.
+  standalone:
+    enabled: false
+
+    image:
+      repository: ghcr.io/tailscale/derper
+      tag: "latest"
+      pullPolicy: IfNotPresent
+
+    # Hostname the derper TLS certificate is issued for
+    hostname: "derp.example.com"
+
+    # When true, derper fetches its own Let's Encrypt cert automatically.
+    # Set to false and provide certSecret when managing certs externally.
+    certMode: "letsencrypt"   # letsencrypt | manual
+
+    # Secret name containing tls.crt / tls.key (used when certMode=manual)
+    certSecret: ""
+
+    # Verify Tailscale clients are actually Tailscale nodes
+    verifyClients: false
+
+    service:
+      type: LoadBalancer
+      httpsPort: 443
+      stunPort: 3478
+      annotations: {}
+
+    resources:
+      limits:
+        cpu: 200m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+# ── Services ─────────────────────────────────────────────────────────────────
+
+service:
+  http:
+    type: ClusterIP
+    port: 8080
+    annotations: {}
+
+  grpc:
+    type: ClusterIP
+    port: 50443
+    annotations: {}
+
+  # STUN port exposed when derp.server.enabled = true
+  stun:
+    type: ClusterIP
+    port: 3478
+    protocol: UDP
+    annotations: {}
+
+# ── Ingress ───────────────────────────────────────────────────────────────────
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: headscale.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ── Resources ────────────────────────────────────────────────────────────────
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# ── Scheduling ───────────────────────────────────────────────────────────────
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Extra volumes / mounts (e.g. for ACL policy files or external TLS certs)
+extraVolumes: []
+extraVolumeMounts: []
+
+# Extra environment variables injected into the headscale container
+extraEnv: []
+# - name: FOO
+#   value: bar
