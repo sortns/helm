@@ -175,6 +175,25 @@ entries:
   headscale:
   - apiVersion: v2
     appVersion: 0.28.0
+    created: "2026-05-06T11:10:44.643699755Z"
+    description: Self-hosted Tailscale control server with optional DERP relay support
+    digest: 043066c7d93b174db7dd1da6aae8758d9d2ed31553d10c9700ff15fd8085bfdb
+    home: https://github.com/juanfont/headscale
+    keywords:
+    - headscale
+    - tailscale
+    - vpn
+    - wireguard
+    - derp
+    name: headscale
+    sources:
+    - https://github.com/juanfont/headscale
+    type: application
+    urls:
+    - https://github.com/sortns/helm/releases/download/headscale-0.5.2/headscale-0.5.2.tgz
+    version: 0.5.2
+  - apiVersion: v2
+    appVersion: 0.28.0
     created: "2026-05-05T20:41:49.811313432Z"
     description: Self-hosted Tailscale control server with optional DERP relay support
     digest: 2e15d304de1b32c37134297f3f26f3ccdf3371c48647a135720897044bbe5e8c
@@ -378,4 +397,4 @@ entries:
     urls:
     - https://github.com/sortns/helm/releases/download/webapp-0.0.2/webapp-0.0.2.tgz
     version: 0.0.2
-generated: "2026-05-05T20:41:49.811383783Z"
+generated: "2026-05-06T11:10:44.643824551Z"
