@@ -99,6 +99,11 @@ spec:
               mountPath: /var/lib/headscale
             - name: run
               mountPath: /var/run/headscale
+            {{- if .Values.derp.customRegions }}
+            - name: derp-regions
+              mountPath: /etc/headscale/derp-regions
+              readOnly: true
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -118,6 +123,11 @@ spec:
           emptyDir: {}
         - name: run
           emptyDir: {}
+        {{- if .Values.derp.customRegions }}
+        - name: derp-regions
+          configMap:
+            name: {{ include "headscale.fullname" . }}-derp-regions
+        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

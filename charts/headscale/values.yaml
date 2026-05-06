@@ -187,6 +187,23 @@ derp:
   # Paths to locally-mounted DERP map JSON files
   paths: []
 
+  # Custom DERP regions defined directly in values.
+  # These are rendered into a ConfigMap and mounted automatically.
+  # Leave empty to disable. Example:
+  # customRegions:
+  #   900:
+  #     regionid: 900
+  #     regioncode: eu-nl
+  #     regionname: Europe Netherlands
+  #     nodes:
+  #       - name: 900a
+  #         regionid: 900
+  #         hostname: derp-eu.ixsa.net
+  #         ipv4: "1.2.3.4"
+  #         stunport: 3478
+  #         derpport: 443
+  customRegions: {}
+
   autoUpdateEnabled: true
   updateFrequency: "24h"
 

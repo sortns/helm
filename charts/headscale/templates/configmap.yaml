@@ -45,6 +45,9 @@ data:
         {{- range .Values.derp.paths }}
         - {{ . | quote }}
         {{- end }}
+        {{- if .Values.derp.customRegions }}
+        - "/etc/headscale/derp-regions/custom-regions.yaml"
+        {{- end }}
       auto_update_enabled: {{ .Values.derp.autoUpdateEnabled }}
       update_frequency: {{ .Values.derp.updateFrequency | quote }}
 
