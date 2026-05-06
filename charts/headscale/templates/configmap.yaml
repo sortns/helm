@@ -38,15 +38,24 @@ data:
         ipv6: {{ .Values.derp.server.ipv6 | quote }}
         {{- end }}
       urls:
+        {{- if .Values.derp.urls }}
         {{- range .Values.derp.urls }}
         - {{ . | quote }}
         {{- end }}
+        {{- else }}
+        []
+        {{- end }}
       paths:
-        {{- range .Values.derp.paths }}
+        {{- $paths := .Values.derp.paths }}
+        {{- if .Values.derp.customRegions }}
+        {{- $paths = append $paths "/etc/headscale/derp-regions/custom-regions.yaml" }}
+        {{- end }}
+        {{- if $paths }}
+        {{- range $paths }}
         - {{ . | quote }}
         {{- end }}
-        {{- if .Values.derp.customRegions }}
-        - "/etc/headscale/derp-regions/custom-regions.yaml"
+        {{- else }}
+        []
         {{- end }}
       auto_update_enabled: {{ .Values.derp.autoUpdateEnabled }}
       update_frequency: {{ .Values.derp.updateFrequency | quote }}
