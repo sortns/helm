@@ -46,9 +46,10 @@ data:
         []
         {{- end }}
       paths:
+        {{- $customPath := "/etc/headscale/derp-regions/custom-regions.yaml" }}
         {{- $paths := .Values.derp.paths }}
-        {{- if .Values.derp.customRegions }}
-        {{- $paths = append $paths "/etc/headscale/derp-regions/custom-regions.yaml" }}
+        {{- if and .Values.derp.customRegions (not (has $customPath $paths)) }}
+        {{- $paths = append $paths $customPath }}
         {{- end }}
         {{- if $paths }}
         {{- range $paths }}
