@@ -184,9 +184,6 @@ derp:
   urls:
     - "https://controlplane.tailscale.com/derpmap/default"
 
-  # # Paths to locally-mounted DERP map JSON files
-  # paths: []
-
   # Custom DERP regions defined directly in values.
   # These are rendered into a ConfigMap and mounted automatically.
   # Leave empty to disable. Example:
