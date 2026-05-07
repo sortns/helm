@@ -92,8 +92,11 @@ config:
     # Path to a JSON file with extra DNS records served to nodes (optional)
     extraRecordsPath: ""
 
-  # ACL policy file path (mount via extraVolumes if needed)
-  aclPolicyPath: ""
+  # Policy storage — "database" (managed via `headscale policy set`) or "file"
+  policy:
+    mode: database
+    # path is only used when mode is "file"; mount the file via extraVolumes
+    path: ""
 
   # Database
   database:

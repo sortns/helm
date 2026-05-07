@@ -121,9 +121,11 @@ data:
       extra_records_path: {{ .Values.config.dns.extraRecordsPath | quote }}
       {{- end }}
 
-    {{- if .Values.config.aclPolicyPath }}
-    acls_policy_path: {{ .Values.config.aclPolicyPath | quote }}
-    {{- end }}
+    policy:
+      mode: {{ .Values.config.policy.mode | quote }}
+      {{- if eq .Values.config.policy.mode "file" }}
+      path: {{ .Values.config.policy.path | quote }}
+      {{- end }}
 
     tls_letsencrypt_hostname: {{ .Values.config.tls.letsencryptHostname | quote }}
     tls_letsencrypt_email: {{ .Values.config.tls.letsencryptEmail | quote }}
