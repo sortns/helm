@@ -84,6 +84,11 @@ config:
       global:
         - "8.8.8.8"
     searchDomains: []
+    # Split DNS: per-domain resolver overrides (v0.28+)
+    # splitDns:
+    #   hm.ixsa.net:
+    #     - 10.10.20.8
+    splitDns: {}
     # Path to a JSON file with extra DNS records served to nodes (optional)
     extraRecordsPath: ""
 

@@ -108,6 +108,15 @@ data:
         {{- range .Values.config.dns.searchDomains }}
         - {{ . | quote }}
         {{- end }}
+      {{- if .Values.config.dns.splitDns }}
+      split_dns:
+        {{- range $domain, $servers := .Values.config.dns.splitDns }}
+        {{ $domain }}:
+          {{- range $servers }}
+          - {{ . | quote }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
       {{- if .Values.config.dns.extraRecordsPath }}
       extra_records_path: {{ .Values.config.dns.extraRecordsPath | quote }}
       {{- end }}
