@@ -8,6 +8,7 @@ spec:
   failedJobsHistoryLimit: 5
   jobTemplate:
     spec:
+      backoffLimit: {{ .Values.backoffLimit | default 0 }}
       template:
         spec:
           {{- with .Values.deployment.secret.app_imagePullSecrets }}

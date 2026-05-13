@@ -1,5 +1,7 @@
 schedule: "0 7 * * *"
 
+backoffLimit: 3
+
 image:
   repository: myregistry/cron-task
   tag: latest
