@@ -471,6 +471,24 @@ entries:
   poweradmin:
   - apiVersion: v2
     appVersion: 4.2.3
+    created: "2026-06-04T16:41:00.721066547Z"
+    description: Production-oriented Helm chart for Poweradmin on Kubernetes
+    digest: f64daa888be2dc29e83b250e838d0644e0238dcc989f3ccea3241cd75524e8b3
+    home: https://github.com/poweradmin/poweradmin
+    keywords:
+    - poweradmin
+    - powerdns
+    - dns
+    - administration
+    name: poweradmin
+    sources:
+    - https://github.com/poweradmin/poweradmin
+    type: application
+    urls:
+    - https://github.com/sortns/helm/releases/download/poweradmin-0.1.1/poweradmin-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    appVersion: 4.2.3
     created: "2026-06-04T15:50:19.427288808Z"
     description: Production-oriented Helm chart for Poweradmin on Kubernetes
     digest: d198af6ef5b7f8dddf6fe2c2e7886988b51ec25d79713d66e3956a0e92638aab
@@ -559,4 +577,4 @@ entries:
     urls:
     - https://github.com/sortns/helm/releases/download/webapp-0.0.2/webapp-0.0.2.tgz
     version: 0.0.2
-generated: "2026-06-04T15:50:19.42737027Z"
+generated: "2026-06-04T16:41:00.721146226Z"
