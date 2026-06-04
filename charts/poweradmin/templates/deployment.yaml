@@ -38,6 +38,134 @@ spec:
       topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.databaseInit.enabled }}
+      initContainers:
+        - name: db-init
+          image: "{{ .Values.image.repository }}:{{ include "poweradmin.imageTag" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.databaseInit.securityContext | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "poweradmin.fullname" . }}
+          {{- if or (eq (include "poweradmin.hasSecretEnv" .) "true") .Values.databaseInit.extraEnv }}
+          env:
+            {{- if eq (include "poweradmin.hasSecretEnv" .) "true" }}
+            {{- range $name, $value := .Values.secretEnv.values }}
+            {{- if ne (toString $value) "" }}
+            - name: {{ printf "%s__FILE" $name }}
+              value: "{{ $.Values.secretEnv.mountPath }}/{{ $name }}"
+            {{- end }}
+            {{- end }}
+            {{- range $name, $key := .Values.secretEnv.existingSecretKeys }}
+            - name: {{ printf "%s__FILE" $name }}
+              value: "{{ $.Values.secretEnv.mountPath }}/{{ $key }}"
+            {{- end }}
+            {{- end }}
+            {{- with .Values.databaseInit.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              process_secret_files() {
+                for VAR_NAME in $(env | grep '^[^=]\+__FILE=.\+' | sed -r 's/^([^=]*)__FILE=.*/\1/g'); do
+                  VAR_NAME_FILE="${VAR_NAME}__FILE"
+                  if [ "${!VAR_NAME}" ]; then
+                    echo "ERROR: Both ${VAR_NAME} and ${VAR_NAME_FILE} are set but are exclusive" >&2
+                    exit 1
+                  fi
+                  VAR_FILENAME="${!VAR_NAME_FILE}"
+                  if [ ! -r "${VAR_FILENAME}" ]; then
+                    echo "ERROR: ${VAR_FILENAME} does not exist or is not readable" >&2
+                    exit 1
+                  fi
+                  export "${VAR_NAME}"="$(<"${VAR_FILENAME}")"
+                  unset "${VAR_NAME_FILE}"
+                done
+              }
+
+              process_secret_files
+
+              case "${DB_TYPE}" in
+                sqlite)
+                  DB_FILE="${DB_FILE:-/db/pdns.db}"
+                  mkdir -p "$(dirname "${DB_FILE}")"
+                  if ! sqlite3 "${DB_FILE}" "SELECT 1 FROM users LIMIT 1" >/dev/null 2>&1; then
+                    echo "Initializing Poweradmin SQLite schema at ${DB_FILE}"
+                    if ! sqlite3 "${DB_FILE}" ".schema users" >/dev/null 2>&1; then
+                      sqlite3 "${DB_FILE}" < /app/sql/poweradmin-sqlite-db-structure.sql
+                    fi
+                    if [ "${PA_INIT_PDNS_SCHEMA:-false}" = "true" ] && ! sqlite3 "${DB_FILE}" ".schema domains" >/dev/null 2>&1; then
+                      sqlite3 "${DB_FILE}" < "/app/sql/pdns/${PDNS_VERSION:-49}/schema.sqlite3.sql"
+                    fi
+                  fi
+                  ;;
+                mysql)
+                  PORT_OPT=""
+                  [ -n "${DB_PORT:-}" ] && PORT_OPT="-P${DB_PORT}"
+                  SSL_OPTS=""
+                  DB_SSL_LC=$(echo "${DB_SSL:-false}" | tr '[:upper:]' '[:lower:]')
+                  DB_SSL_VERIFY_LC=$(echo "${DB_SSL_VERIFY:-false}" | tr '[:upper:]' '[:lower:]')
+                  if [ "${DB_SSL_LC}" != "true" ]; then
+                    SSL_OPTS="--skip-ssl"
+                  elif [ "${DB_SSL_VERIFY_LC}" != "true" ]; then
+                    SSL_OPTS="--skip-ssl-verify-server-cert"
+                  fi
+                  USERS_EXISTS=$(mysql ${SSL_OPTS} -h"${DB_HOST}" ${PORT_OPT} -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" -sNe \
+                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}' AND table_name='users';")
+                  if [ "${USERS_EXISTS}" = "0" ]; then
+                    echo "Initializing Poweradmin MySQL schema in ${DB_NAME}"
+                    mysql ${SSL_OPTS} -h"${DB_HOST}" ${PORT_OPT} -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" < /app/sql/poweradmin-mysql-db-structure.sql
+                  fi
+                  if [ "${PA_INIT_PDNS_SCHEMA:-false}" = "true" ] && [ -z "${PA_PDNS_DB_NAME:-}" ]; then
+                    DOMAINS_EXISTS=$(mysql ${SSL_OPTS} -h"${DB_HOST}" ${PORT_OPT} -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" -sNe \
+                      "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}' AND table_name='domains';")
+                    if [ "${DOMAINS_EXISTS}" = "0" ]; then
+                      echo "Initializing PowerDNS MySQL schema in ${DB_NAME}"
+                      mysql ${SSL_OPTS} -h"${DB_HOST}" ${PORT_OPT} -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" < "/app/sql/pdns/${PDNS_VERSION:-49}/schema.mysql.sql"
+                    fi
+                  fi
+                  ;;
+                pgsql)
+                  PORT_OPT=""
+                  [ -n "${DB_PORT:-}" ] && PORT_OPT="-p ${DB_PORT}"
+                  USERS_EXISTS=$(PGPASSWORD="${DB_PASS}" psql -h "${DB_HOST}" ${PORT_OPT} -U "${DB_USER}" -d "${DB_NAME}" -tAc \
+                    "SELECT to_regclass('public.users') IS NOT NULL;")
+                  if [ "${USERS_EXISTS}" = "f" ]; then
+                    echo "Initializing Poweradmin PostgreSQL schema in ${DB_NAME}"
+                    PGPASSWORD="${DB_PASS}" psql -h "${DB_HOST}" ${PORT_OPT} -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 -q \
+                      -f /app/sql/poweradmin-pgsql-db-structure.sql
+                  fi
+                  if [ "${PA_INIT_PDNS_SCHEMA:-false}" = "true" ] && [ -z "${PA_PDNS_DB_NAME:-}" ]; then
+                    DOMAINS_EXISTS=$(PGPASSWORD="${DB_PASS}" psql -h "${DB_HOST}" ${PORT_OPT} -U "${DB_USER}" -d "${DB_NAME}" -tAc \
+                      "SELECT to_regclass('public.domains') IS NOT NULL;")
+                    if [ "${DOMAINS_EXISTS}" = "f" ]; then
+                      echo "Initializing PowerDNS PostgreSQL schema in ${DB_NAME}"
+                      PGPASSWORD="${DB_PASS}" psql -h "${DB_HOST}" ${PORT_OPT} -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 -q \
+                        -f "/app/sql/pdns/${PDNS_VERSION:-49}/schema.pgsql.sql"
+                    fi
+                  fi
+                  ;;
+                *)
+                  echo "Unsupported DB_TYPE: ${DB_TYPE}" >&2
+                  exit 1
+                  ;;
+              esac
+          volumeMounts:
+            - name: db
+              mountPath: /db
+            {{- if eq (include "poweradmin.hasSecretEnv" .) "true" }}
+            - name: secret-env
+              mountPath: {{ .Values.secretEnv.mountPath }}
+              readOnly: true
+            {{- end }}
+            {{- with .Values.databaseInit.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      {{- end }}
       containers:
         - name: poweradmin
           image: "{{ .Values.image.repository }}:{{ include "poweradmin.imageTag" . }}"

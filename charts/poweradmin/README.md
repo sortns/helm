@@ -5,6 +5,7 @@ This chart deploys [Poweradmin](https://github.com/poweradmin/poweradmin) on Kub
 - non-root container execution on port `8080`
 - read-only root filesystem with writable runtime mounts only where required
 - file-based secret injection using Poweradmin's `__FILE` support
+- a database bootstrap init container for Poweradmin `4.2.3`
 - optional SQLite PVC for lab or single-node setups
 - external MySQL/PostgreSQL support for production
 - optional ingress, PDB, and network policy resources
@@ -14,6 +15,8 @@ The chart targets Poweradmin `4.2.3` and follows the stable `4.2.x` line.
 ## Version note
 
 Upstream versioning is a little inconsistent across release surfaces. This chart is pinned to `4.2.3` because that stable image tag is published upstream, while the GitHub releases page may lag behind specific stable-line tags.
+
+The `4.2.3` image does not include the database auto-initialization logic that exists in newer upstream builds, so this chart performs schema bootstrap in an init container before the application starts.
 
 ## Installing
 
@@ -113,6 +116,10 @@ secretEnv:
 - optional modules and PowerDNS API integration
 
 Use `extraEnv` for one-off pod env additions that are not Poweradmin settings.
+
+## Probes
+
+The chart defaults to `tcpSocket` probes instead of HTTP `/` probes. Poweradmin serves `/` through application code, and on an uninitialized database that path can generate repeated SQL errors and noisy logs even when the web server itself is healthy.
 
 ## Auto-update flow
 
