@@ -67,7 +67,7 @@ spec:
             {{- end }}
           {{- end }}
           command:
-            - /bin/sh
+            - /bin/bash
             - -ec
             - |
               process_secret_files() {
