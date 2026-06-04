@@ -1,0 +1,10 @@
+1. Poweradmin is exposed inside the cluster on:
+   http://{{ include "poweradmin.fullname" . }}:{{ .Values.service.port }}
+
+2. If ingress is enabled, browse to:
+{{- range .Values.ingress.hosts }}
+   http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+
+3. The chart defaults to file-based secret injection. Sensitive values are mounted under:
+   {{ .Values.secretEnv.mountPath }}

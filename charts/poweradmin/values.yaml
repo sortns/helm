@@ -1,0 +1,510 @@
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+revisionHistoryLimit: 3
+
+image:
+  repository: poweradmin/poweradmin
+  pullPolicy: IfNotPresent
+  # Stable upstream 4.2.x image tag. Leave empty to use chart appVersion.
+  tag: "4.2.3"
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: false
+  automountServiceAccountToken: false
+  annotations: {}
+  name: ""
+
+automountServiceAccountToken: false
+priorityClassName: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 82
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 82
+  runAsGroup: 82
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# Poweradmin listens on 8080 automatically in non-root mode.
+# If you switch to root mode and port 80, update both this value and env.SERVER_PORT.
+containerPort: 8080
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: poweradmin.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+startupProbe:
+  httpGet:
+    path: /
+    port: http
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+
+# SQLite convenience mode. For production, prefer MySQL or PostgreSQL and keep
+# this disabled.
+persistence:
+  enabled: false
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 8Gi
+  annotations: {}
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  maxUnavailable: null
+
+networkPolicy:
+  enabled: false
+  ingress:
+    from: []
+  egress:
+    allowDns: true
+    # Example:
+    # rules:
+    #   - to:
+    #       - ipBlock:
+    #           cidr: 10.0.0.0/24
+    #     ports:
+    #       - protocol: TCP
+    #         port: 3306
+    rules: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+command: []
+args: []
+
+# Additional env entries rendered directly into the pod spec.
+extraEnv: []
+
+extraVolumes: []
+extraVolumeMounts: []
+
+# Non-sensitive Poweradmin environment variables rendered via ConfigMap.
+# All currently documented upstream Docker variables are surfaced here.
+env:
+  # Core container behavior
+  SERVER_PORT: "8080"
+  TRUSTED_CA_FILE: ""
+  TRUSTED_PROXIES: ""
+  # Compatibility aliases seen in some upstream release notes.
+  PA_TRUSTED_CA_FILE: ""
+  PA_TRUSTED_PROXIES: ""
+  DEBUG: "false"
+  PA_CONFIG_PATH: ""
+
+  # Initial admin bootstrap
+  PA_CREATE_ADMIN: "false"
+  PA_ADMIN_USERNAME: "admin"
+  PA_ADMIN_EMAIL: "admin@example.com"
+  PA_ADMIN_FULLNAME: "Administrator"
+
+  # Database configuration
+  DB_TYPE: "mysql"
+  DB_HOST: ""
+  DB_PORT: ""
+  DB_USER: "poweradmin"
+  DB_NAME: "poweradmin"
+  DB_FILE: "/db/pdns.db"
+  PA_PDNS_DB_NAME: ""
+  DB_SSL: "false"
+  DB_SSL_VERIFY: "false"
+  DB_SSL_CA: ""
+  DB_SSL_KEY: ""
+  DB_SSL_CERT: ""
+  PDNS_VERSION: "49"
+  PA_INIT_PDNS_SCHEMA: "false"
+
+  # DNS backend and defaults
+  PA_DNS_BACKEND: "sql"
+  # Compatibility alias for API-vs-SQL backend selection in some upstream docs.
+  PA_PDNS_BACKEND: ""
+  DNS_NS1: "ns1.example.com"
+  DNS_NS2: "ns2.example.com"
+  DNS_NS3: ""
+  DNS_NS4: ""
+  DNS_HOSTMASTER: "hostmaster.example.com"
+  PA_DNS_TTL: "86400"
+  PA_DNS_SOA_REFRESH: "28800"
+  PA_DNS_SOA_RETRY: "7200"
+  PA_DNS_SOA_EXPIRE: "604800"
+  PA_DNS_SOA_MINIMUM: "86400"
+  PA_DNS_ZONE_TYPE_DEFAULT: "MASTER"
+  PA_DNS_STRICT_TLD_CHECK: "false"
+  PA_DNS_TOP_LEVEL_TLD_CHECK: "false"
+  PA_DNS_THIRD_LEVEL_CHECK: "false"
+  PA_DNS_TXT_AUTO_QUOTE: "false"
+  PA_DNS_PREVENT_DUPLICATE_PTR: "true"
+  PA_DNS_CUSTOM_TLDS: ""
+  PA_DNS_DOMAIN_RECORD_TYPES: ""
+  PA_DNS_REVERSE_RECORD_TYPES: ""
+  PA_DNSSEC_ENABLED: "false"
+  PA_DNSSEC_DEBUG: "false"
+
+  # Logging
+  PA_LOGGING_TYPE: "null"
+  PA_LOGGING_LEVEL: "info"
+  PA_LOGGING_DATABASE_ENABLED: "false"
+  PA_LOGGING_SYSLOG_ENABLED: "false"
+  PA_LOGGING_SYSLOG_IDENTITY: "poweradmin"
+  PA_LOGGING_SYSLOG_FACILITY: "LOG_USER"
+
+  # Security
+  PA_PASSWORD_ENCRYPTION: "bcrypt"
+  PA_PASSWORD_COST: "12"
+  PA_LOGIN_TOKEN_VALIDATION: "true"
+  PA_GLOBAL_TOKEN_VALIDATION: "true"
+  PA_PASSWORD_RULES_ENABLED: "true"
+  PA_PASSWORD_MIN_LENGTH: "12"
+  PA_PASSWORD_REQUIRE_UPPERCASE: "true"
+  PA_PASSWORD_REQUIRE_LOWERCASE: "true"
+  PA_PASSWORD_REQUIRE_NUMBERS: "true"
+  PA_PASSWORD_REQUIRE_SPECIAL: "true"
+  PA_LOCKOUT_ENABLED: "true"
+  PA_LOCKOUT_ATTEMPTS: "5"
+  PA_LOCKOUT_DURATION: "15"
+  PA_LOCKOUT_TRACK_IP: "true"
+  PA_LOCKOUT_CLEAR_ON_SUCCESS: "true"
+
+  # MFA
+  PA_MFA_ENABLED: "false"
+  PA_MFA_ENFORCED: "false"
+  PA_MFA_APP_ENABLED: "true"
+  PA_MFA_EMAIL_ENABLED: "true"
+  PA_MFA_RECOVERY_CODES: "8"
+  PA_MFA_RECOVERY_CODE_LENGTH: "10"
+
+  # Password reset and username recovery
+  PA_PASSWORD_RESET_ENABLED: "false"
+  PA_PASSWORD_RESET_TOKEN_LIFETIME: "3600"
+  PA_PASSWORD_RESET_RATE_LIMIT_ATTEMPTS: "5"
+  PA_PASSWORD_RESET_RATE_LIMIT_WINDOW: "3600"
+  PA_PASSWORD_RESET_MIN_TIME_BETWEEN: "60"
+  PA_USERNAME_RECOVERY_ENABLED: "false"
+  PA_USERNAME_RECOVERY_RATE_LIMIT_ATTEMPTS: "5"
+  PA_USERNAME_RECOVERY_RATE_LIMIT_WINDOW: "3600"
+  PA_USERNAME_RECOVERY_MIN_TIME_BETWEEN: "60"
+
+  # reCAPTCHA
+  PA_RECAPTCHA_ENABLED: "false"
+  PA_RECAPTCHA_SITE_KEY: ""
+  PA_RECAPTCHA_VERSION: "v3"
+  PA_RECAPTCHA_V3_THRESHOLD: "0.5"
+
+  # Notifications and user agreement
+  PA_NOTIFICATION_ZONE_ACCESS: "false"
+  PA_USER_AGREEMENT_ENABLED: "false"
+  PA_USER_AGREEMENT_VERSION: "1.0"
+  PA_USER_AGREEMENT_REQUIRE_ON_CHANGE: "true"
+
+  # Mail
+  PA_MAIL_ENABLED: "false"
+  PA_MAIL_TRANSPORT: "php"
+  PA_SMTP_HOST: ""
+  PA_SMTP_PORT: "587"
+  PA_SMTP_USER: ""
+  PA_SMTP_ENCRYPTION: "tls"
+  PA_MAIL_FROM: ""
+  PA_MAIL_FROM_NAME: ""
+  PA_MAIL_RETURN_PATH: "poweradmin@example.com"
+  PA_SMTP_AUTH: "false"
+  PA_SENDMAIL_PATH: "/usr/sbin/sendmail -bs"
+
+  # Interface
+  PA_APP_TITLE: "Poweradmin"
+  PA_DEFAULT_LANGUAGE: "en_EN"
+  PA_ENABLED_LANGUAGES: "cs_CZ,de_DE,en_EN,es_ES,fr_FR,it_IT,ja_JP,lt_LT,nb_NO,nl_NL,pl_PL,pt_PT,ru_RU,tr_TR,zh_CN"
+  PA_SESSION_TIMEOUT: "1800"
+  PA_ROWS_PER_PAGE: "10"
+  PA_THEME: "default"
+  PA_STYLE: "light"
+  PA_THEME_BASE_PATH: "templates"
+  PA_BASE_URL: ""
+  PA_BASE_URL_PREFIX: ""
+  PA_APPLICATION_URL: ""
+  PA_TIMEZONE: "UTC"
+  PA_EDIT_CONFLICT_RESOLUTION: "last_writer_wins"
+  PA_SHOW_RECORD_ID: "true"
+  PA_SHOW_ADD_RECORD_FORM: "false"
+  PA_SHOW_RECORD_EDIT_BUTTON: "false"
+  PA_SHOW_RECORD_DELETE_BUTTON: "false"
+  PA_POSITION_RECORD_FORM_TOP: "true"
+  PA_POSITION_SAVE_BUTTON_TOP: "false"
+  PA_SHOW_ZONE_COMMENTS: "true"
+  PA_SHOW_RECORD_COMMENTS: "false"
+  PA_DISPLAY_SERIAL_IN_ZONE_LIST: "false"
+  PA_DISPLAY_TEMPLATE_IN_ZONE_LIST: "false"
+  PA_DISPLAY_FULLNAME_IN_ZONE_LIST: "false"
+  PA_SEARCH_GROUP_RECORDS: "false"
+  PA_REVERSE_ZONE_SORT: "natural"
+  PA_SHOW_PDNS_STATUS: "false"
+  PA_ADD_REVERSE_RECORD: "true"
+  PA_ADD_DOMAIN_RECORD: "true"
+  PA_DISPLAY_HOSTNAME_ONLY: "false"
+  PA_ENABLE_CONSISTENCY_CHECKS: "false"
+  PA_SHOW_FORWARD_ZONE_ASSOCIATIONS: "true"
+
+  # API
+  PA_API_ENABLED: "false"
+  PA_API_BASIC_AUTH_ENABLED: "false"
+  PA_API_BASIC_AUTH_REALM: "Poweradmin API"
+  PA_API_DOCS_ENABLED: "false"
+  PA_API_MAX_KEYS_PER_USER: "5"
+
+  # PowerDNS API integration
+  PA_PDNS_DISPLAY_NAME: "PowerDNS"
+  PA_PDNS_API_URL: ""
+  PA_PDNS_SERVER_NAME: "localhost"
+
+  # Optional modules
+  PA_MODULE_CSV_EXPORT_ENABLED: "true"
+  PA_MODULE_ZONE_IMPORT_EXPORT_ENABLED: "false"
+  PA_MODULE_ZONE_IMPORT_EXPORT_AUTO_TTL: "300"
+  PA_MODULE_ZONE_IMPORT_EXPORT_MAX_FILE_SIZE: "1048576"
+  PA_MODULE_WHOIS_ENABLED: "false"
+  PA_MODULE_WHOIS_DEFAULT_SERVER: ""
+  PA_MODULE_WHOIS_CUSTOM_SERVERS: ""
+  PA_MODULE_WHOIS_SOCKET_TIMEOUT: "10"
+  PA_MODULE_WHOIS_RESTRICT_TO_ADMIN: "true"
+  PA_MODULE_RDAP_ENABLED: "false"
+  PA_MODULE_RDAP_DEFAULT_SERVER: ""
+  PA_MODULE_RDAP_CUSTOM_SERVERS: ""
+  PA_MODULE_RDAP_REQUEST_TIMEOUT: "10"
+  PA_MODULE_RDAP_RESTRICT_TO_ADMIN: "true"
+  PA_MODULE_EMAIL_PREVIEWS_ENABLED: "false"
+  PA_MODULE_EMAIL_PREVIEWS_RESTRICT_TO_ADMIN: "true"
+  PA_MODULE_DNS_WIZARDS_ENABLED: "false"
+  PA_MODULE_DNS_WIZARDS_TYPES: "DMARC,SPF,DKIM,CAA,TLSA,SRV"
+
+  # LDAP
+  PA_LDAP_ENABLED: "false"
+  PA_LDAP_DEBUG: "false"
+  PA_LDAP_URI: ""
+  PA_LDAP_BASE_DN: ""
+  PA_LDAP_BIND_DN: ""
+  PA_LDAP_USER_ATTRIBUTE: "uid"
+  PA_LDAP_PROTOCOL_VERSION: "3"
+  PA_LDAP_SEARCH_FILTER: ""
+  PA_LDAP_SESSION_CACHE_TIMEOUT: "300"
+
+  # OIDC global settings
+  PA_OIDC_ENABLED: "false"
+  PA_OIDC_AUTO_PROVISION: "true"
+  PA_OIDC_LINK_BY_EMAIL: "true"
+  PA_OIDC_DEFAULT_PERMISSION_TEMPLATE: ""
+  PA_OIDC_PERMISSION_TEMPLATE_MAPPING: ""
+  PA_OIDC_GROUP_MAPPING: ""
+
+  # OIDC generic provider
+  PA_OIDC_GENERIC_ENABLED: "false"
+  PA_OIDC_GENERIC_NAME: "Generic OIDC"
+  PA_OIDC_GENERIC_DISPLAY_NAME: "Sign in with SSO"
+  PA_OIDC_GENERIC_CLIENT_ID: ""
+  PA_OIDC_GENERIC_BASE_URL: ""
+  PA_OIDC_GENERIC_AUTO_DISCOVERY: "true"
+  PA_OIDC_GENERIC_AUTHORIZE_URL: ""
+  PA_OIDC_GENERIC_TOKEN_URL: ""
+  PA_OIDC_GENERIC_USERINFO_URL: ""
+  PA_OIDC_GENERIC_LOGOUT_URL: ""
+  PA_OIDC_GENERIC_SCOPES: "openid profile email"
+  PA_OIDC_GENERIC_USERNAME_ATTR: "preferred_username"
+  PA_OIDC_GENERIC_EMAIL_ATTR: "email"
+  PA_OIDC_GENERIC_FIRST_NAME_ATTR: "given_name"
+  PA_OIDC_GENERIC_LAST_NAME_ATTR: "family_name"
+  PA_OIDC_GENERIC_DISPLAY_NAME_ATTR: "name"
+  PA_OIDC_GENERIC_GROUPS_ATTR: "groups"
+  PA_OIDC_GENERIC_AVATAR_ATTR: "picture"
+
+  # OIDC Azure AD
+  PA_OIDC_AZURE_ENABLED: "false"
+  PA_OIDC_AZURE_NAME: "Azure AD"
+  PA_OIDC_AZURE_DISPLAY_NAME: "Sign in with Azure AD"
+  PA_OIDC_AZURE_CLIENT_ID: ""
+  PA_OIDC_AZURE_TENANT: ""
+
+  # OIDC Google
+  PA_OIDC_GOOGLE_ENABLED: "false"
+  PA_OIDC_GOOGLE_NAME: "Google"
+  PA_OIDC_GOOGLE_DISPLAY_NAME: "Sign in with Google"
+  PA_OIDC_GOOGLE_CLIENT_ID: ""
+
+  # OIDC Keycloak
+  PA_OIDC_KEYCLOAK_ENABLED: "false"
+  PA_OIDC_KEYCLOAK_NAME: "Keycloak"
+  PA_OIDC_KEYCLOAK_DISPLAY_NAME: "Sign in with Keycloak"
+  PA_OIDC_KEYCLOAK_CLIENT_ID: ""
+  PA_OIDC_KEYCLOAK_BASE_URL: ""
+  PA_OIDC_KEYCLOAK_REALM: ""
+
+  # OIDC Okta
+  PA_OIDC_OKTA_ENABLED: "false"
+  PA_OIDC_OKTA_NAME: "Okta"
+  PA_OIDC_OKTA_DISPLAY_NAME: "Sign in with Okta"
+  PA_OIDC_OKTA_CLIENT_ID: ""
+  PA_OIDC_OKTA_BASE_URL: ""
+  PA_OIDC_OKTA_AUTH_SERVER: "default"
+
+  # OIDC Authentik
+  PA_OIDC_AUTHENTIK_ENABLED: "false"
+  PA_OIDC_AUTHENTIK_NAME: "Authentik"
+  PA_OIDC_AUTHENTIK_DISPLAY_NAME: "Sign in with Authentik"
+  PA_OIDC_AUTHENTIK_CLIENT_ID: ""
+  PA_OIDC_AUTHENTIK_BASE_URL: ""
+  PA_OIDC_AUTHENTIK_APPLICATION_SLUG: ""
+
+  # OIDC Auth0
+  PA_OIDC_AUTH0_ENABLED: "false"
+  PA_OIDC_AUTH0_NAME: "Auth0"
+  PA_OIDC_AUTH0_DISPLAY_NAME: "Sign in with Auth0"
+  PA_OIDC_AUTH0_CLIENT_ID: ""
+  PA_OIDC_AUTH0_DOMAIN: ""
+
+  # SAML global settings
+  PA_SAML_ENABLED: "false"
+  PA_SAML_AUTO_PROVISION: "true"
+  PA_SAML_LINK_BY_EMAIL: "true"
+  PA_SAML_DEFAULT_PERMISSION_TEMPLATE: ""
+  PA_SAML_PERMISSION_TEMPLATE_MAPPING: ""
+  PA_SAML_GROUP_MAPPING: ""
+  PA_SAML_SP_ENTITY_ID: ""
+  PA_SAML_SP_ACS_URL: ""
+  PA_SAML_SP_SLS_URL: ""
+  PA_SAML_SP_NAME_ID_FORMAT: "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
+
+  # SAML attribute mapping
+  PA_SAML_USERNAME_ATTR: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+  PA_SAML_EMAIL_ATTR: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+  PA_SAML_FIRST_NAME_ATTR: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"
+  PA_SAML_LAST_NAME_ATTR: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"
+  PA_SAML_DISPLAY_NAME_ATTR: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+  PA_SAML_GROUPS_ATTR: "http://schemas.microsoft.com/ws/2008/06/identity/claims/groups"
+
+  # SAML Azure AD
+  PA_SAML_AZURE_ENABLED: "false"
+  PA_SAML_AZURE_NAME: "Azure AD"
+  PA_SAML_AZURE_DISPLAY_NAME: "Sign in with Azure AD"
+  PA_SAML_AZURE_ENTITY_ID: ""
+  PA_SAML_AZURE_SSO_URL: ""
+
+  # SAML Okta
+  PA_SAML_OKTA_ENABLED: "false"
+  PA_SAML_OKTA_NAME: "Okta"
+  PA_SAML_OKTA_DISPLAY_NAME: "Sign in with Okta"
+  PA_SAML_OKTA_ENTITY_ID: ""
+  PA_SAML_OKTA_SSO_URL: ""
+
+  # SAML Keycloak
+  PA_SAML_KEYCLOAK_ENABLED: "false"
+  PA_SAML_KEYCLOAK_NAME: "Keycloak"
+  PA_SAML_KEYCLOAK_DISPLAY_NAME: "Sign in with Keycloak"
+  PA_SAML_KEYCLOAK_ENTITY_ID: ""
+  PA_SAML_KEYCLOAK_SSO_URL: ""
+
+  # SAML Auth0
+  PA_SAML_AUTH0_ENABLED: "false"
+  PA_SAML_AUTH0_NAME: "Auth0"
+  PA_SAML_AUTH0_DISPLAY_NAME: "Sign in with Auth0"
+  PA_SAML_AUTH0_ENTITY_ID: ""
+  PA_SAML_AUTH0_SSO_URL: ""
+
+  # SAML generic provider
+  PA_SAML_GENERIC_ENABLED: "false"
+  PA_SAML_GENERIC_NAME: "Generic SAML"
+  PA_SAML_GENERIC_DISPLAY_NAME: "Sign in with SSO"
+  PA_SAML_GENERIC_ENTITY_ID: ""
+  PA_SAML_GENERIC_SSO_URL: ""
+
+# Sensitive Poweradmin variables are mounted as files and exposed through
+# <NAME>__FILE env vars. This avoids placing secret values directly in the pod
+# environment. When using an existing secret, map env var names to secret keys
+# via existingSecretKeys.
+secretEnv:
+  existingSecret: ""
+  mountPath: /run/poweradmin-secrets
+  existingSecretKeys: {}
+  values:
+    DB_PASS: ""
+    PA_ADMIN_PASSWORD: ""
+    PA_SESSION_KEY: ""
+    PA_RECAPTCHA_SECRET_KEY: ""
+    PA_SMTP_PASSWORD: ""
+    PA_PDNS_API_KEY: ""
+    PA_LDAP_BIND_PASSWORD: ""
+    PA_OIDC_GENERIC_CLIENT_SECRET: ""
+    PA_OIDC_AZURE_CLIENT_SECRET: ""
+    PA_OIDC_GOOGLE_CLIENT_SECRET: ""
+    PA_OIDC_KEYCLOAK_CLIENT_SECRET: ""
+    PA_OIDC_OKTA_CLIENT_SECRET: ""
+    PA_OIDC_AUTHENTIK_CLIENT_SECRET: ""
+    PA_OIDC_AUTH0_CLIENT_SECRET: ""
+    PA_SAML_SP_X509CERT: ""
+    PA_SAML_SP_PRIVATE_KEY: ""
+    PA_SAML_AZURE_X509_CERT: ""
+    PA_SAML_OKTA_X509_CERT: ""
+    PA_SAML_KEYCLOAK_X509_CERT: ""
+    PA_SAML_AUTH0_X509_CERT: ""
+    PA_SAML_GENERIC_X509_CERT: ""

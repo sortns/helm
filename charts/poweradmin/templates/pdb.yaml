@@ -1,0 +1,18 @@
+{{- if .Values.podDisruptionBudget.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "poweradmin.fullname" . }}
+  labels:
+    {{- include "poweradmin.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "poweradmin.selectorLabels" . | nindent 6 }}
+  {{- if ne .Values.podDisruptionBudget.minAvailable nil }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if ne .Values.podDisruptionBudget.maxUnavailable nil }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+{{- end }}
