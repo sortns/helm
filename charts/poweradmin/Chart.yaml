@@ -2,8 +2,8 @@ apiVersion: v2
 name: poweradmin
 description: Production-oriented Helm chart for Poweradmin on Kubernetes
 type: application
-version: 0.1.2
-appVersion: "4.2.3"
+version: 0.1.3
+appVersion: "4.2.6"
 keywords:
   - poweradmin
   - powerdns
