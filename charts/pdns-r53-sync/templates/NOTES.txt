@@ -1,0 +1,31 @@
+{{- $name := include "pdns-r53-sync.fullname" . -}}
+pdns-r53-sync mirrors {{ include "pdns-r53-sync.zone" . }} from Poweradmin to Route53 hosted zone {{ .Values.route53.hostedZoneId }}.
+
+{{ if .Values.sync.dryRun -}}
+MODE: DRY-RUN. Nothing is written to Route53; every sync only logs the plan.
+{{- else -}}
+MODE: LIVE. Route53 follows Poweradmin; manual changes in Route53 are reverted every {{ .Values.sync.fullSyncInterval }}s.
+{{- end }}
+
+Self-test (Poweradmin access, serial, skipped records, hosted zone guard; prints no secrets):
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ $name }} -- python -m pa_sync check
+
+Current plan (always dry-run, whatever the mode):
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ $name }} -- python -m pa_sync plan 2>&1 | grep -E 'plan:|sync reason|ERROR'
+
+Logs:
+  kubectl -n {{ .Release.Namespace }} logs deploy/{{ $name }} | grep -E 'plan:|sync reason|ERROR'
+
+Metrics:
+  kubectl -n {{ .Release.Namespace }} port-forward deploy/{{ $name }} {{ .Values.metrics.port }} &
+  curl -s localhost:{{ .Values.metrics.port }}/metrics | grep ^pa_sync
+{{- if eq (include "pdns-r53-sync.createSecret" .) "true" }}
+
+WARNING: secrets were passed through values (secretEnv.values) and are stored in the Helm release.
+         Prefer secretEnv.existingSecret.
+{{- end }}
+{{- if .Values.sync.dryRun }}
+
+Go live only after reviewing the plan:
+  helm -n {{ .Release.Namespace }} upgrade {{ .Release.Name }} <chart> --reuse-values --set sync.dryRun=false
+{{- end }}

@@ -1,0 +1,146 @@
+{{- $secretKeys := include "pdns-r53-sync.secretKeys" . | fromJson -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pdns-r53-sync.fullname" . }}
+  labels:
+    {{- include "pdns-r53-sync.labels" . | nindent 4 }}
+spec:
+  # Exactly one writer to the hosted zone: no replicas knob, no HPA, no overlap on rollout
+  replicas: 1
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "pdns-r53-sync.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- if .Values.metrics.scrapeAnnotations }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.metrics.port | quote }}
+        prometheus.io/path: /metrics
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "pdns-r53-sync.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "pdns-r53-sync.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.automountServiceAccountToken }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      containers:
+        - name: sync
+          image: "{{ .Values.image.repository }}:{{ include "pdns-r53-sync.imageTag" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["run"]
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.metrics.port }}
+              protocol: TCP
+          env:
+            - name: PA_SYNC_ZONE
+              value: {{ include "pdns-r53-sync.zone" . | quote }}
+            - name: PA_SYNC_POWERADMIN_URL
+              value: {{ .Values.poweradmin.url | quote }}
+            - name: PA_SYNC_VERIFY_TLS
+              value: {{ .Values.poweradmin.verifyTls | quote }}
+            - name: PA_SYNC_HTTP_TIMEOUT
+              value: {{ .Values.poweradmin.timeoutSeconds | quote }}
+            - name: PA_SYNC_HOSTED_ZONE_ID
+              value: {{ required "route53.hostedZoneId is required" .Values.route53.hostedZoneId | quote }}
+            - name: PA_SYNC_DRY_RUN
+              value: {{ .Values.sync.dryRun | quote }}
+            - name: PA_SYNC_POLL_INTERVAL
+              value: {{ .Values.sync.pollInterval | quote }}
+            - name: PA_SYNC_FULL_SYNC_INTERVAL
+              value: {{ .Values.sync.fullSyncInterval | quote }}
+            - name: PA_SYNC_RETRY_INTERVAL
+              value: {{ .Values.sync.retryInterval | quote }}
+            - name: PA_SYNC_LIVENESS_MAX_AGE
+              value: {{ .Values.sync.livenessMaxAge | quote }}
+            - name: PA_SYNC_METRICS_PORT
+              value: {{ .Values.metrics.port | quote }}
+            - name: PA_SYNC_OCTODNS_CONFIG
+              value: /config/octodns.yaml
+            - name: PA_SYNC_LOG_LEVEL
+              value: {{ .Values.logLevel | quote }}
+            # Secrets are files; only their paths are in the environment
+            {{- range $name, $key := $secretKeys }}
+            - name: {{ printf "%s__FILE" $name }}
+              value: "{{ $.Values.secretEnv.mountPath }}/{{ $key }}"
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            periodSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: secret-env
+              mountPath: {{ .Values.secretEnv.mountPath }}
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "pdns-r53-sync.fullname" . }}
+        - name: secret-env
+          secret:
+            secretName: {{ include "pdns-r53-sync.secretName" . }}
+            defaultMode: 0440
+            # Only the keys this app uses, even if the Secret holds more
+            items:
+              {{- range $name, $key := $secretKeys }}
+              - key: {{ $key }}
+                path: {{ $key }}
+              {{- end }}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 16Mi
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

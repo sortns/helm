@@ -1,0 +1,156 @@
+nameOverride: ""
+fullnameOverride: ""
+
+# There is intentionally no replicas setting: the Deployment always runs exactly one pod with
+# the Recreate strategy, so only one process ever writes to the hosted zone.
+revisionHistoryLimit: 3
+
+image:
+  repository: ghcr.io/sortns/pdns-r53-sync
+  pullPolicy: IfNotPresent
+  # Leave empty to use the chart appVersion. Use fixed versions, never "latest".
+  tag: ""
+
+imagePullSecrets: []
+
+# Zone to mirror, without the trailing dot (e.g. example.com). Required.
+zone: ""
+
+poweradmin:
+  # Base URL of Poweradmin (API v2 must be enabled: api.enabled / PA_API_ENABLED). Required, https only.
+  url: ""
+  timeoutSeconds: 10
+  verifyTls: true
+
+route53:
+  # ID of the public hosted zone to write to (Z0123456789ABCDEFGHIJ). Required.
+  # Every sync first checks that this is the only public zone with that name; nothing is ever created.
+  hostedZoneId: ""
+  # secret: AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY from the Secret below
+  # ambient: default AWS credential chain (IRSA / EKS Pod Identity via serviceAccount.annotations)
+  credentials: secret
+  # octoDNS safety limits; a plan above them is refused and logged for a human (never forced).
+  updatePcentThreshold: 0.3
+  deletePcentThreshold: 0.2
+
+sync:
+  # First install must stay in dry-run. Only a human flips this after reviewing the plan.
+  dryRun: true
+  # Seconds between SOA serial polls (each poll is one API request and one last_used_at update in Poweradmin)
+  pollInterval: 5
+  # Unconditional sync period; reverts manual edits made in Route53
+  fullSyncInterval: 300
+  # Back-off after a failed or refused sync
+  retryInterval: 60
+  # Liveness fails when the loop has not ticked for this long (must cover the longest sync)
+  livenessMaxAge: 600
+
+filters:
+  # Always rejected (hard-coded in the chart): NS, plus A/AAAA in
+  # 0.0.0.0/8 10.0.0.0/8 100.64.0.0/10 127.0.0.0/8 169.254.0.0/16 172.16.0.0/12 192.168.0.0/16 ::1/128 fc00::/7 fe80::/10.
+  # Filters apply to both sides: matching records already in Route53 are left untouched.
+  extraRejectTypes: []
+  extraRejectNetworks: []
+  # Record names to leave alone on both sides (exact names or /regex/), e.g. ["/^_acme-challenge/"]
+  rejectNames: []
+
+logLevel: INFO
+
+# Secrets are mounted as files and exposed as <NAME>__FILE env vars; values never enter the pod env.
+# Use an existing Secret (External Secrets, sealed-secrets, kubectl create secret). Without
+# existingSecretKeys the Secret keys must be named POWERADMIN_API_KEY, AWS_ACCESS_KEY_ID and
+# AWS_SECRET_ACCESS_KEY (the AWS ones only with route53.credentials=secret).
+secretEnv:
+  existingSecret: ""
+  mountPath: /run/pdns-r53-sync-secrets
+  # Map env var name -> key in existingSecret, e.g. {POWERADMIN_API_KEY: pa-api-key, ...}
+  existingSecretKeys: {}
+  # For tests only: values end up in the Helm release history. Ignored when existingSecret is set.
+  values:
+    POWERADMIN_API_KEY: ""
+    AWS_ACCESS_KEY_ID: ""
+    AWS_SECRET_ACCESS_KEY: ""
+
+serviceAccount:
+  create: false
+  automountServiceAccountToken: false
+  # e.g. eks.amazonaws.com/role-arn for route53.credentials=ambient
+  annotations: {}
+  name: ""
+
+automountServiceAccountToken: false
+priorityClassName: ""
+terminationGracePeriodSeconds: 60
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 384Mi
+
+livenessProbe:
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+metrics:
+  port: 9100
+  # prometheus.io/scrape|port|path pod annotations for annotation-based scraping
+  scrapeAnnotations: true
+
+# Optional ClusterIP Service for the metrics port (created automatically for the ServiceMonitor)
+service:
+  enabled: false
+  annotations: {}
+
+# Prometheus Operator integration
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  labels: {}
+
+prometheusRule:
+  enabled: false
+  labels: {}
+  severity: warning
+  staleAfterSeconds: 900
+  # PromQL label matchers added to every alert expression, e.g. namespace="dns"
+  metricSelector: ""
+
+# Only useful with a CNI that enforces NetworkPolicy
+networkPolicy:
+  enabled: false
+  ingress:
+    from: []
+  egress:
+    allowDns: true
+    # TCP/443 to public addresses: Poweradmin API, route53.amazonaws.com, sts
+    allowHttpsToInternet: true
+    rules: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Additional env entries rendered into the container
+extraEnv: []

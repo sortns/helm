@@ -1,0 +1,4 @@
+*
+!pa_sync/
+!requirements.txt
+**/__pycache__
