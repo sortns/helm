@@ -175,7 +175,9 @@ def test_monitoring_objects():
 )
 def test_rejected_values(args, message):
     extra = [] if not args or args[0] != '--set' or 'secretEnv' in args[1] else ['--set', 'secretEnv.existingSecret=x']
-    assert message in render_error(*args, *extra)
+    error = render_error(*args, *extra)
+    # Helm < 3.18 reports schema paths as "poweradmin.url", newer versions as "/poweradmin/url"
+    assert message in error or '/' + message.replace('.', '/') in error, error
 
 
 def test_rendered_config_runs_a_dry_run(tmp_path, pa, aws, monkeypatch):
