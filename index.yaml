@@ -468,6 +468,27 @@ entries:
     urls:
     - https://github.com/sortns/helm/releases/download/headscale-0.1.0/headscale-0.1.0.tgz
     version: 0.1.0
+  pdns-r53-sync:
+  - apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-10-14T19:45:00.792517445Z"
+    description: Mirrors a PowerDNS zone from the Poweradmin API v2 to AWS Route53
+      (octoDNS, single writer, dry-run by default)
+    digest: 391d5928973275be0892af1a659b6c51b0795bd9db08cb88f040ce382b63fdc5
+    home: https://github.com/sortns/helm/tree/master/apps/pdns-r53-sync
+    keywords:
+    - powerdns
+    - poweradmin
+    - route53
+    - octodns
+    - dns
+    name: pdns-r53-sync
+    sources:
+    - https://github.com/sortns/helm/tree/master/apps/pdns-r53-sync
+    type: application
+    urls:
+    - https://github.com/sortns/helm/releases/download/pdns-r53-sync-0.1.0/pdns-r53-sync-0.1.0.tgz
+    version: 0.1.0
   poweradmin:
   - apiVersion: v2
     appVersion: 4.2.3
@@ -595,4 +616,4 @@ entries:
     urls:
     - https://github.com/sortns/helm/releases/download/webapp-0.0.2/webapp-0.0.2.tgz
     version: 0.0.2
-generated: "2026-06-04T16:44:03.40457328Z"
+generated: "2026-10-14T19:45:00.792630393Z"
