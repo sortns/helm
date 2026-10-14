@@ -1,0 +1,17 @@
+[project]
+name = "pdns-r53-sync"
+dynamic = ["version"]
+description = "Mirror a PowerDNS zone from the Poweradmin API v2 to AWS Route53 with octoDNS"
+requires-python = ">=3.10"
+
+[tool.setuptools.dynamic]
+version = { attr = "pa_sync.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-p no:cacheprovider"
+filterwarnings = ["ignore::DeprecationWarning:octodns.*"]
+
+[tool.ruff]
+line-length = 120

@@ -1,0 +1,46 @@
+{{- if .Values.prometheusRule.enabled -}}
+{{- $sel := .Values.prometheusRule.metricSelector -}}
+{{- $zone := include "pdns-r53-sync.zone" . -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "pdns-r53-sync.fullname" . }}
+  labels:
+    {{- include "pdns-r53-sync.labels" . | nindent 4 }}
+    {{- with .Values.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: pdns-r53-sync
+      rules:
+        - alert: PdnsR53SyncStale
+          expr: time() - max(pa_sync_last_success_timestamp_seconds{ {{- $sel -}} }) > {{ .Values.prometheusRule.staleAfterSeconds }}
+          for: 5m
+          labels:
+            severity: {{ .Values.prometheusRule.severity }}
+          annotations:
+            summary: Route53 mirror of {{ $zone }} has not synced successfully for over {{ .Values.prometheusRule.staleAfterSeconds }}s
+            description: Check the pod logs for "sync reason=... failed" / "refused" / "blocked".
+        - alert: PdnsR53SyncPoweradminUnreachable
+          expr: increase(pa_sync_poll_errors_total{ {{- $sel -}} }[10m]) > 0 and increase(pa_sync_polls_total{ {{- $sel -}} }[10m]) == 0
+          for: 10m
+          labels:
+            severity: {{ .Values.prometheusRule.severity }}
+          annotations:
+            summary: pdns-r53-sync cannot read the SOA serial of {{ $zone }} from Poweradmin
+        - alert: PdnsR53SyncUnsafePlan
+          expr: increase(pa_sync_unsafe_plans_total{ {{- $sel -}} }[15m]) > 0
+          labels:
+            severity: {{ .Values.prometheusRule.severity }}
+          annotations:
+            summary: Route53 sync of {{ $zone }} refused by the octoDNS safety threshold
+            description: Too many updates/deletes at once. Review the plan in the logs; do not force. A human decides.
+        - alert: PdnsR53SyncHostedZoneGuard
+          expr: min(pa_sync_hosted_zone_check_ok{ {{- $sel -}} }) == 0
+          for: 5m
+          labels:
+            severity: {{ .Values.prometheusRule.severity }}
+          annotations:
+            summary: Route53 hosted zone check for {{ $zone }} fails (missing, renamed, private or duplicated zone)
+{{- end }}

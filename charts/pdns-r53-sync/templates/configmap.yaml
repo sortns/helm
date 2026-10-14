@@ -1,0 +1,65 @@
+{{- $zone := include "pdns-r53-sync.zone" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pdns-r53-sync.fullname" . }}
+  labels:
+    {{- include "pdns-r53-sync.labels" . | nindent 4 }}
+data:
+  # octoDNS configuration. Secrets are referenced as env/<NAME> and resolved inside the pod.
+  octodns.yaml: |
+    manager:
+      max_workers: 1
+      plan_outputs:
+        report:
+          class: pa_sync.plan.PlanReporter
+    providers:
+      poweradmin:
+        class: pa_sync.source.PoweradminSource
+        url: {{ required "poweradmin.url is required" .Values.poweradmin.url | quote }}
+        api_key: env/POWERADMIN_API_KEY
+        timeout: {{ .Values.poweradmin.timeoutSeconds }}
+        verify_tls: {{ .Values.poweradmin.verifyTls }}
+      route53:
+        class: pa_sync.route53.Route53Provider
+        {{- if eq .Values.route53.credentials "secret" }}
+        access_key_id: env/AWS_ACCESS_KEY_ID
+        secret_access_key: env/AWS_SECRET_ACCESS_KEY
+        {{- end }}
+        # Public zones only; the hosted zone itself is pinned by PA_SYNC_HOSTED_ZONE_ID
+        private: false
+        client_max_attempts: 5
+        update_pcent_threshold: {{ .Values.route53.updatePcentThreshold }}
+        delete_pcent_threshold: {{ .Values.route53.deletePcentThreshold }}
+    processors:
+      reject-types:
+        class: octodns.processor.filter.TypeRejectlistFilter
+        rejectlist: {{ include "pdns-r53-sync.rejectTypes" . }}
+      reject-networks:
+        class: octodns.processor.filter.NetworkValueRejectlistFilter
+        rejectlist: {{ include "pdns-r53-sync.rejectNetworks" . }}
+      {{- $rejectNames := include "pdns-r53-sync.rejectNames" . | fromJsonArray }}
+      {{- if $rejectNames }}
+      reject-names:
+        class: octodns.processor.filter.NameRejectlistFilter
+        rejectlist: {{ toJson $rejectNames }}
+      {{- end }}
+      ignore-root-ns:
+        class: octodns.processor.filter.IgnoreRootNsFilter
+      normalize-targets:
+        class: pa_sync.processors.TargetFqdnNormalizer
+    zones:
+      {{ $zone }}.:
+        always-dry-run: {{ .Values.sync.dryRun }}
+        sources:
+          - poweradmin
+        processors:
+          - reject-types
+          - reject-networks
+          {{- if $rejectNames }}
+          - reject-names
+          {{- end }}
+          - ignore-root-ns
+          - normalize-targets
+        targets:
+          - route53

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: pdns-r53-sync
+description: Mirrors a PowerDNS zone from the Poweradmin API v2 to AWS Route53 (octoDNS, single writer, dry-run by default)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - powerdns
+  - poweradmin
+  - route53
+  - octodns
+  - dns
+home: https://github.com/sortns/helm/tree/master/apps/pdns-r53-sync
+sources:
+  - https://github.com/sortns/helm/tree/master/apps/pdns-r53-sync

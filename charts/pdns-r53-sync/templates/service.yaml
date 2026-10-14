@@ -1,0 +1,21 @@
+{{- if or .Values.service.enabled .Values.serviceMonitor.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pdns-r53-sync.fullname" . }}
+  labels:
+    {{- include "pdns-r53-sync.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: {{ .Values.metrics.port }}
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    {{- include "pdns-r53-sync.selectorLabels" . | nindent 4 }}
+{{- end }}
