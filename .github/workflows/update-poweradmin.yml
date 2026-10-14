@@ -5,25 +5,43 @@ on:
     - cron: "15 7 * * *"
   workflow_dispatch:
 
+concurrency:
+  group: update-poweradmin
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+defaults:
+  run:
+    # Explicit shell enables `-o pipefail`, so a failed git ls-remote in a pipe fails the step
+    shell: bash
+
+env:
+  CHART_DIR: charts/poweradmin
+  IMAGE_REPOSITORY: poweradmin/poweradmin
+
 jobs:
   update:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Fetch latest stable 4.2.x tag
         id: upstream
         run: |
+          # Stable tags only (vX.Y.Z), no rc/beta suffixes
           TAG=$(git ls-remote --tags --refs https://github.com/poweradmin/poweradmin.git 'v4.2.*' \
             | awk -F/ '{print $3}' \
-            | sed 's/\^{}//' \
+            | { grep -E '^v4\.2\.[0-9]+$' || true; } \
             | sort -V \
             | tail -n1)
+          if [[ -z "$TAG" ]]; then
+            echo "::error::No stable v4.2.x tag found upstream"
+            exit 1
+          fi
 
           VERSION="${TAG#v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -32,30 +50,41 @@ jobs:
       - name: Read current chart version
         id: current
         run: |
-          APP=$(grep '^appVersion:' charts/poweradmin/Chart.yaml \
+          APP=$(grep '^appVersion:' "$CHART_DIR/Chart.yaml" \
             | sed 's/appVersion: //; s/"//g; s/ //g')
-          CHART=$(grep '^version:' charts/poweradmin/Chart.yaml \
+          CHART=$(grep '^version:' "$CHART_DIR/Chart.yaml" \
             | sed 's/version: //; s/"//g; s/ //g')
           echo "appVersion=$APP" >> "$GITHUB_OUTPUT"
           echo "chartVersion=$CHART" >> "$GITHUB_OUTPUT"
 
       - name: Bump chart when upstream is newer
         id: bump
-        if: steps.upstream.outputs.version != steps.current.outputs.appVersion
+        env:
+          NEW_APP: ${{ steps.upstream.outputs.version }}
+          CUR_APP: ${{ steps.current.outputs.appVersion }}
+          CUR_CHART: ${{ steps.current.outputs.chartVersion }}
         run: |
-          NEW_APP="${{ steps.upstream.outputs.version }}"
+          # Only move forward: skip when upstream equals or is older than the chart
+          NEWEST=$(printf '%s\n%s\n' "$CUR_APP" "$NEW_APP" | sort -V | tail -n1)
+          if [[ "$NEW_APP" == "$CUR_APP" || "$NEWEST" != "$NEW_APP" ]]; then
+            echo "Chart appVersion $CUR_APP is up to date (upstream $NEW_APP)"
+            exit 0
+          fi
 
-          IFS='.' read -r MAJOR MINOR PATCH <<< "${{ steps.current.outputs.chartVersion }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CUR_CHART"
           NEW_CHART="$MAJOR.$MINOR.$((PATCH + 1))"
 
-          sed -i "s/^appVersion: .*/appVersion: \"$NEW_APP\"/" charts/poweradmin/Chart.yaml
-          sed -i "s/^version: .*/version: $NEW_CHART/" charts/poweradmin/Chart.yaml
+          sed -i "s/^appVersion: .*/appVersion: \"$NEW_APP\"/" "$CHART_DIR/Chart.yaml"
+          sed -i "s/^version: .*/version: $NEW_CHART/" "$CHART_DIR/Chart.yaml"
 
-          awk -v new="$NEW_APP" '
-            /repository: poweradmin\/poweradmin/ { found=1 }
-            found && /^  tag:/ { sub(/".*"/, "\"" new "\""); found=0 }
+          # Update the image tag that follows 'repository: <image>' in values.yaml,
+          # but only when it is pinned — an empty tag already falls back to appVersion
+          awk -v repo="repository: $IMAGE_REPOSITORY" -v new="$NEW_APP" '
+            index($0, repo) { found=1 }
+            found && /^  tag:/ { if ($0 !~ /""/) sub(/".*"/, "\"" new "\""); found=0 }
             { print }
-          ' charts/poweradmin/values.yaml > /tmp/poweradmin-values.yaml && mv /tmp/poweradmin-values.yaml charts/poweradmin/values.yaml
+          ' "$CHART_DIR/values.yaml" > "$RUNNER_TEMP/values.yaml"
+          mv "$RUNNER_TEMP/values.yaml" "$CHART_DIR/values.yaml"
 
           echo "newAppVersion=$NEW_APP" >> "$GITHUB_OUTPUT"
           echo "newChartVersion=$NEW_CHART" >> "$GITHUB_OUTPUT"
@@ -63,11 +92,15 @@ jobs:
 
       - name: Open pull request
         if: steps.bump.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Optional PAT/App token: PRs opened with GITHUB_TOKEN do not trigger other workflows.
+          # With GITHUB_TOKEN, enable "Allow GitHub Actions to create and approve pull requests"
+          # in Settings → Actions → General.
+          token: ${{ secrets.CHART_UPDATER_TOKEN || github.token }}
           commit-message: "chore(poweradmin): update to v${{ steps.bump.outputs.newAppVersion }}"
-          branch: "chore/poweradmin-${{ steps.bump.outputs.newAppVersion }}"
+          # Fixed branch: a newer upstream release updates the open PR instead of opening another one
+          branch: chore/poweradmin-update
           delete-branch: true
           title: "chore(poweradmin): update to v${{ steps.bump.outputs.newAppVersion }}"
           body: |

@@ -31,4 +31,8 @@ This repository ships dedicated updater workflows for charts that track upstream
 - `headscale`: `.github/workflows/update-headscale.yml`
 - `poweradmin`: `.github/workflows/update-poweradmin.yml`
 
+Each updater keeps a single PR open on a fixed branch (`chore/<chart>-update`) and refreshes it when a newer upstream version appears.
+
+The updaters open PRs with `GITHUB_TOKEN`, which requires **Settings → Actions → General → Workflow permissions → "Allow GitHub Actions to create and approve pull requests"**. Alternatively, set a `CHART_UPDATER_TOKEN` secret (fine-grained PAT or GitHub App token with `contents` and `pull-requests` write); PRs opened with it also trigger other workflows.
+
 The release workflow in `.github/workflows/release.yml` publishes chart changes after they land on `master`.

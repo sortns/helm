@@ -6,60 +6,89 @@ on:
     - cron: "0 7 * * *"
   workflow_dispatch:
 
+concurrency:
+  group: update-headscale
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+defaults:
+  run:
+    # Explicit shell enables `-o pipefail`, so a failed curl in a pipe fails the step
+    shell: bash
+
+env:
+  CHART_DIR: charts/headscale
+  IMAGE_REPOSITORY: headscale/headscale
+
 jobs:
   update:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Fetch latest headscale release
         id: upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           TAG=$(curl -sSf \
             -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
             https://api.github.com/repos/juanfont/headscale/releases/latest \
-            | jq -r .tag_name)
+            | jq -er .tag_name)
           # strip leading 'v'
           VERSION="${TAG#v}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Unexpected upstream tag '$TAG'"
+            exit 1
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Read current chart version
         id: current
         run: |
-          APP=$(grep '^appVersion:' charts/headscale/Chart.yaml \
+          APP=$(grep '^appVersion:' "$CHART_DIR/Chart.yaml" \
             | sed 's/appVersion: //; s/"//g; s/ //g')
-          CHART=$(grep '^version:' charts/headscale/Chart.yaml \
+          CHART=$(grep '^version:' "$CHART_DIR/Chart.yaml" \
             | sed 's/version: //; s/"//g; s/ //g')
           echo "appVersion=$APP" >> "$GITHUB_OUTPUT"
           echo "chartVersion=$CHART" >> "$GITHUB_OUTPUT"
 
       - name: Bump chart when upstream is newer
         id: bump
-        if: steps.upstream.outputs.version != steps.current.outputs.appVersion
+        env:
+          NEW_APP: ${{ steps.upstream.outputs.version }}
+          CUR_APP: ${{ steps.current.outputs.appVersion }}
+          CUR_CHART: ${{ steps.current.outputs.chartVersion }}
         run: |
-          NEW_APP="${{ steps.upstream.outputs.version }}"
+          # Only move forward: skip when upstream equals or is older than the chart
+          NEWEST=$(printf '%s\n%s\n' "$CUR_APP" "$NEW_APP" | sort -V | tail -n1)
+          if [[ "$NEW_APP" == "$CUR_APP" || "$NEWEST" != "$NEW_APP" ]]; then
+            echo "Chart appVersion $CUR_APP is up to date (upstream $NEW_APP)"
+            exit 0
+          fi
 
           # Bump chart patch version (e.g. 0.1.0 → 0.1.1)
-          IFS='.' read -r MAJOR MINOR PATCH <<< "${{ steps.current.outputs.chartVersion }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CUR_CHART"
           NEW_CHART="$MAJOR.$MINOR.$((PATCH + 1))"
 
           # Update Chart.yaml
-          sed -i "s/^appVersion: .*/appVersion: \"$NEW_APP\"/" charts/headscale/Chart.yaml
-          sed -i "s/^version: .*/version: $NEW_CHART/" charts/headscale/Chart.yaml
+          sed -i "s/^appVersion: .*/appVersion: \"$NEW_APP\"/" "$CHART_DIR/Chart.yaml"
+          sed -i "s/^version: .*/version: $NEW_CHART/" "$CHART_DIR/Chart.yaml"
 
-          # Update default image tag in values.yaml
-          # Replaces the line '  tag: "X.Y.Z"' that immediately follows 'repository: headscale/headscale'
-          awk -v new="$NEW_APP" '
-            /repository: headscale\/headscale/ { found=1 }
-            found && /^  tag:/ { sub(/".*"/, "\"" new "\""); found=0 }
+          # Update the image tag that follows 'repository: <image>' in values.yaml,
+          # but only when it is pinned — an empty tag already falls back to appVersion
+          awk -v repo="repository: $IMAGE_REPOSITORY" -v new="$NEW_APP" '
+            index($0, repo) { found=1 }
+            found && /^  tag:/ { if ($0 !~ /""/) sub(/".*"/, "\"" new "\""); found=0 }
             { print }
-          ' charts/headscale/values.yaml > /tmp/values.yaml && mv /tmp/values.yaml charts/headscale/values.yaml
+          ' "$CHART_DIR/values.yaml" > "$RUNNER_TEMP/values.yaml"
+          mv "$RUNNER_TEMP/values.yaml" "$CHART_DIR/values.yaml"
 
           echo "newAppVersion=$NEW_APP" >> "$GITHUB_OUTPUT"
           echo "newChartVersion=$NEW_CHART" >> "$GITHUB_OUTPUT"
@@ -67,11 +96,15 @@ jobs:
 
       - name: Open pull request
         if: steps.bump.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Optional PAT/App token: PRs opened with GITHUB_TOKEN do not trigger other workflows.
+          # With GITHUB_TOKEN, enable "Allow GitHub Actions to create and approve pull requests"
+          # in Settings → Actions → General.
+          token: ${{ secrets.CHART_UPDATER_TOKEN || github.token }}
           commit-message: "chore(headscale): update to v${{ steps.bump.outputs.newAppVersion }}"
-          branch: "chore/headscale-${{ steps.bump.outputs.newAppVersion }}"
+          # Fixed branch: a newer upstream release updates the open PR instead of opening another one
+          branch: chore/headscale-update
           delete-branch: true
           title: "chore(headscale): update to v${{ steps.bump.outputs.newAppVersion }}"
           body: |
