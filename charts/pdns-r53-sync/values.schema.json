@@ -58,7 +58,9 @@
       "properties": {
         "extraRejectTypes": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z0-9]+$" } },
         "extraRejectNetworks": { "type": "array", "items": { "type": "string", "pattern": "^[0-9a-fA-F:.]+/[0-9]{1,3}$" } },
-        "rejectNames": { "type": "array", "items": { "type": "string" } }
+        "rejectNames": { "type": "array", "items": { "type": "string" } },
+        "ignoreRoute53Aliases": { "type": "boolean" },
+        "ignoreAcmValidation": { "type": "boolean" }
       }
     },
     "logLevel": { "enum": ["DEBUG", "INFO", "WARNING", "ERROR"] },

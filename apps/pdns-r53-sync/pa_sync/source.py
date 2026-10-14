@@ -36,9 +36,11 @@ def _fqdn(target):
 
 
 def _txt(content):
-    content = content.strip()
     # Multi-string values come back in presentation format; single strings lost their outer quotes
-    if not content.startswith('"'):
+    # and must be kept byte for byte (leading/trailing spaces are part of the value)
+    if content.strip().startswith('"') and content.strip().endswith('"'):
+        content = content.strip()
+    else:
         content = f'"{content}"'
     return Record.registered_types()['TXT']._value_type.normalize_raw_text(content)
 
@@ -152,7 +154,7 @@ class PoweradminSource(BaseSource):
         records = self.client.records(zone_id)
         rrsets, skipped = convert(zone.name, records)
 
-        added = 0
+        added = lenient_count = 0
         for (name, rtype), data in sorted(rrsets.items()):
             mixed = data.pop('_mixed_ttl', None)
             if mixed:
@@ -160,13 +162,17 @@ class PoweradminSource(BaseSource):
             try:
                 record = Record.new(zone, name, data, source=self, lenient=lenient)
             except ValidationError as e:
-                self.log.warning('populate: skipping invalid %s %s: %s', name or '@', rtype, e)
-                skipped.append((rtype, 'invalid', name or zone.name))
-                continue
-            zone.add_record(record, lenient=lenient)
+                # Mirror what PowerDNS serves even when octoDNS finds it unusual (e.g. SRV named
+                # "dc._msdcs"); skipping it would make the sync delete the live record in Route53
+                reasons = '; '.join(e.reasons)
+                self.log.warning('populate: %s %s is not strictly valid (%s), mirroring as-is', name or '@', rtype, reasons)
+                lenient_count += 1
+                record = Record.new(zone, name, data, source=self, lenient=True)
+            zone.add_record(record, lenient=True)
             added += 1
 
         metrics.SOURCE_RECORDS.set(added)
+        metrics.LENIENT_RECORDS.set(lenient_count)
         metrics.SKIPPED_RECORDS.clear()
         for (rtype, reason), count in Counter((t, r) for t, r, _ in skipped).items():
             metrics.SKIPPED_RECORDS.labels(rtype, reason).set(count)

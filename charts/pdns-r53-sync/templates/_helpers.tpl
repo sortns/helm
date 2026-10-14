@@ -134,7 +134,22 @@ true
 Filters that are always applied, whatever the values say.
 */}}
 {{- define "pdns-r53-sync.rejectTypes" -}}
-{{- toJson (uniq (prepend .Values.filters.extraRejectTypes "NS")) -}}
+{{- $types := prepend .Values.filters.extraRejectTypes "NS" -}}
+{{- if .Values.filters.ignoreRoute53Aliases -}}
+{{- $types = append $types "Route53Provider/ALIAS" -}}
+{{- end -}}
+{{- toJson (uniq $types) -}}
+{{- end }}
+
+{{/*
+Names left alone on both sides: user patterns plus ACM DNS validation records (_<32 hex>[.name]).
+*/}}
+{{- define "pdns-r53-sync.rejectNames" -}}
+{{- $names := .Values.filters.rejectNames -}}
+{{- if .Values.filters.ignoreAcmValidation -}}
+{{- $names = append $names "/^_[0-9a-f]{32}(\\.|$)/" -}}
+{{- end -}}
+{{- toJson (uniq $names) -}}
 {{- end }}
 
 {{- define "pdns-r53-sync.rejectNetworks" -}}

@@ -103,9 +103,21 @@ def test_live_mode_and_extra_filters_still_valid(tmp_path):
     assert settings.dry_run is False
     config = validate_octodns_config(settings)
     procs = config['processors']
-    assert procs['reject-types']['rejectlist'] == ['NS', 'LUA']
+    assert procs['reject-types']['rejectlist'] == ['NS', 'LUA', 'Route53Provider/ALIAS']
     assert '198.51.100.0/24' in procs['reject-networks']['rejectlist']
-    assert procs['reject-names']['rejectlist'] == ['/^_acme-challenge/']
+    assert procs['reject-names']['rejectlist'] == ['/^_acme-challenge/', '/^_[0-9a-f]{32}(\\.|$)/']
+    assert config['zones'][f'{ZONE}.']['processors'][-1] == 'normalize-targets'
+
+
+def test_route53_only_ignores_can_be_disabled():
+    config = yaml.safe_load(octodns_yaml(render(
+        '--set', 'secretEnv.existingSecret=x',
+        '--set', 'filters.ignoreRoute53Aliases=false',
+        '--set', 'filters.ignoreAcmValidation=false',
+    )))
+    assert config['processors']['reject-types']['rejectlist'] == ['NS']
+    assert 'reject-names' not in config['processors']
+    assert 'reject-names' not in config['zones'][f'{ZONE}.']['processors']
 
 
 def test_secret_mapping_and_ambient_credentials(tmp_path):

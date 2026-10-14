@@ -21,6 +21,9 @@ HOSTED_ZONE_OK = Gauge('pa_sync_hosted_zone_check_ok', '1 when the Route53 hoste
 PLANNED_CHANGES = Gauge('pa_sync_planned_changes', 'Changes in the most recent plan', ['action'])
 APPLIED_CHANGES = Counter('pa_sync_applied_changes_total', 'Changes applied to Route53')
 SOURCE_RECORDS = Gauge('pa_sync_source_records', 'Record sets read from Poweradmin and offered to octoDNS')
+LENIENT_RECORDS = Gauge(
+    'pa_sync_lenient_records', 'Record sets mirrored as-is although octoDNS validation flagged them'
+)
 SKIPPED_RECORDS = Gauge(
     'pa_sync_skipped_records', 'Poweradmin records not published to Route53 on the last read', ['type', 'reason']
 )

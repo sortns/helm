@@ -27,6 +27,9 @@ Poweradmin/PowerDNS is the single source of truth; Route53 is a mirror.
 | Private/special A/AAAA never published (RFC 1918, CGNAT, loopback, link-local, ULA) | hard-coded filter; values can only add networks |
 | Change thresholds: update ≤ 0.3, delete ≤ 0.2, never forced | values schema + app refuses looser config |
 | Writes only to the pinned hosted zone; never creates one | pre-sync guard (`route53.hostedZoneId` must be the only public zone of that name) |
+| Route53-only records survive: alias records (CloudFront, ALB, ...) and ACM validation CNAMEs (`_<32 hex>`) | `filters.ignoreRoute53Aliases`, `filters.ignoreAcmValidation` (both default on, both sides) |
+| Records that octoDNS finds unusual (e.g. SRV `dc._msdcs`) are mirrored as-is, never dropped (dropping = deleting in Route53) | source, `pa_sync_lenient_records` |
+| Dot-less targets already in Route53 (`www.example.com` from Terraform's `.fqdn`) count as FQDNs, not as updates | `TargetFqdnNormalizer` on the Route53 side |
 | Secrets only as files from a Secret, never in values/env/ConfigMap | `secretEnv.existingSecret` |
 
 Filters apply to both sides, so records Route53 already has that match them
@@ -174,6 +177,15 @@ Alerts: `PdnsR53SyncStale`, `PdnsR53SyncPoweradminUnreachable`, `PdnsR53SyncUnsa
 
 ## Notes
 
+- **Hand over ownership before going live.** If the records are managed by Terraform (or anything
+  else) today, stop managing them there first (`terraform state rm` / `removed {}` blocks for the
+  `aws_route53_record`s), otherwise Terraform and the sync revert each other. Records that stay
+  Route53-only (aliases, ACM validation) can stay in Terraform; the sync ignores them.
+- **Types octodns-route53 does not support (TLSA, SSHFP, HTTPS, SVCB, ...) are invisible**: neither
+  published from PowerDNS (`skipped ... (unsupported)`) nor touched in Route53. An existing TLSA
+  record in Route53 therefore stays frozen; update it by hand when the key it pins changes (DANE).
+- ACME clients that write `_acme-challenge` TXT records straight into Route53 need
+  `filters.rejectNames: ["/^_acme-challenge/"]`, or the periodic sync may delete a challenge in flight.
 - TXT values with `;` are written to Route53 in escaped form (`\;`, RFC 1035), which resolvers
   receive as plain `;`. After going live, check one record:
   `dig +short TXT _dmarc.example.com @<one of the awsdns servers>`.

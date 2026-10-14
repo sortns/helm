@@ -92,18 +92,26 @@ def octodns_config(pa_url, zone=ZONE, dry_run=True, update=0.3, delete=0.2, netw
             },
         },
         'processors': {
-            'reject-types': {'class': 'octodns.processor.filter.TypeRejectlistFilter', 'rejectlist': ['NS']},
+            'reject-types': {
+                'class': 'octodns.processor.filter.TypeRejectlistFilter',
+                'rejectlist': ['NS', 'Route53Provider/ALIAS'],
+            },
+            'reject-names': {
+                'class': 'octodns.processor.filter.NameRejectlistFilter',
+                'rejectlist': ['/^_[0-9a-f]{32}(\\.|$)/'],
+            },
             'reject-networks': {
                 'class': 'octodns.processor.filter.NetworkValueRejectlistFilter',
                 'rejectlist': list(networks),
             },
             'ignore-root-ns': {'class': 'octodns.processor.filter.IgnoreRootNsFilter'},
+            'normalize-targets': {'class': 'pa_sync.processors.TargetFqdnNormalizer'},
         },
         'zones': {
             f'{zone}.': {
                 'always-dry-run': dry_run,
                 'sources': ['poweradmin'],
-                'processors': ['reject-types', 'reject-networks', 'ignore-root-ns'],
+                'processors': ['reject-types', 'reject-networks', 'reject-names', 'ignore-root-ns', 'normalize-targets'],
                 'targets': ['route53'],
             }
         },

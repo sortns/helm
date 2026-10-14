@@ -38,13 +38,16 @@ data:
       reject-networks:
         class: octodns.processor.filter.NetworkValueRejectlistFilter
         rejectlist: {{ include "pdns-r53-sync.rejectNetworks" . }}
-      {{- with .Values.filters.rejectNames }}
+      {{- $rejectNames := include "pdns-r53-sync.rejectNames" . | fromJsonArray }}
+      {{- if $rejectNames }}
       reject-names:
         class: octodns.processor.filter.NameRejectlistFilter
-        rejectlist: {{ toJson . }}
+        rejectlist: {{ toJson $rejectNames }}
       {{- end }}
       ignore-root-ns:
         class: octodns.processor.filter.IgnoreRootNsFilter
+      normalize-targets:
+        class: pa_sync.processors.TargetFqdnNormalizer
     zones:
       {{ $zone }}.:
         always-dry-run: {{ .Values.sync.dryRun }}
@@ -53,9 +56,10 @@ data:
         processors:
           - reject-types
           - reject-networks
-          {{- if .Values.filters.rejectNames }}
+          {{- if $rejectNames }}
           - reject-names
           {{- end }}
           - ignore-root-ns
+          - normalize-targets
         targets:
           - route53

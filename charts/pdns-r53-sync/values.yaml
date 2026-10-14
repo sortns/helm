@@ -53,6 +53,11 @@ filters:
   extraRejectNetworks: []
   # Record names to leave alone on both sides (exact names or /regex/), e.g. ["/^_acme-challenge/"]
   rejectNames: []
+  # Records that only exist in Route53 and must survive the mirror (ignored on both sides):
+  # alias records (CloudFront, ALB, S3 website, ...) - PowerDNS cannot express them
+  ignoreRoute53Aliases: true
+  # ACM DNS validation CNAMEs (_<32 hex>[.name]) - needed for certificate renewal
+  ignoreAcmValidation: true
 
 logLevel: INFO
 
