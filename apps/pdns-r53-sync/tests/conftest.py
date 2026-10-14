@@ -83,7 +83,7 @@ def octodns_config(pa_url, zone=ZONE, dry_run=True, update=0.3, delete=0.2, netw
                 'timeout': 5,
             },
             'route53': {
-                'class': 'octodns_route53.Route53Provider',
+                'class': 'pa_sync.route53.Route53Provider',
                 'access_key_id': 'env/AWS_ACCESS_KEY_ID',
                 'secret_access_key': 'env/AWS_SECRET_ACCESS_KEY',
                 'private': False,

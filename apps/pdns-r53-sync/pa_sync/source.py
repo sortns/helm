@@ -21,7 +21,7 @@ from octodns.source.base import BaseSource
 from . import metrics
 from .poweradmin import Poweradmin
 
-SUPPORTED = ('A', 'AAAA', 'CAA', 'CNAME', 'MX', 'NAPTR', 'PTR', 'SPF', 'SRV', 'TXT')
+SUPPORTED = ('A', 'AAAA', 'CAA', 'CNAME', 'MX', 'NAPTR', 'PTR', 'SPF', 'SRV', 'SSHFP', 'TLSA', 'TXT')
 # Only meaningful together with a delegation, which is never mirrored
 DELEGATION = {'NS', 'DS'}
 # Not records to mirror: SOA belongs to Route53, NS are excluded by design

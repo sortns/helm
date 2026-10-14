@@ -121,8 +121,8 @@ def validate_octodns_config(settings, path=None):
         raise ConfigError('the only source must be pa_sync.source.PoweradminSource')
 
     targets = _classes(config, 'providers', zone.get('targets') or [])
-    if [c for _, c, _ in targets] != ['octodns_route53.Route53Provider']:
-        raise ConfigError('the only target must be octodns_route53.Route53Provider')
+    if [c for _, c, _ in targets] != ['pa_sync.route53.Route53Provider']:
+        raise ConfigError('the only target must be pa_sync.route53.Route53Provider')
     target = targets[0][2]
     update = float(target.get('update_pcent_threshold', 1))
     delete = float(target.get('delete_pcent_threshold', 1))

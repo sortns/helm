@@ -181,9 +181,10 @@ Alerts: `PdnsR53SyncStale`, `PdnsR53SyncPoweradminUnreachable`, `PdnsR53SyncUnsa
   else) today, stop managing them there first (`terraform state rm` / `removed {}` blocks for the
   `aws_route53_record`s), otherwise Terraform and the sync revert each other. Records that stay
   Route53-only (aliases, ACM validation) can stay in Terraform; the sync ignores them.
-- **Types octodns-route53 does not support (TLSA, SSHFP, HTTPS, SVCB, ...) are invisible**: neither
-  published from PowerDNS (`skipped ... (unsupported)`) nor touched in Route53. An existing TLSA
-  record in Route53 therefore stays frozen; update it by hand when the key it pins changes (DANE).
+- Mirrored types: A, AAAA, CAA, CNAME, MX, NAPTR, PTR, SPF, SRV, SSHFP, TLSA, TXT. TLSA and SSHFP
+  are added on top of octodns-route53, which does not map them yet. Other types (HTTPS, SVCB, LUA,
+  ALIAS, ...) are reported as `skipped ... (unsupported)` and are neither published nor touched in
+  Route53.
 - ACME clients that write `_acme-challenge` TXT records straight into Route53 need
   `filters.rejectNames: ["/^_acme-challenge/"]`, or the periodic sync may delete a challenge in flight.
 - TXT values with `;` are written to Route53 in escaped form (`\;`, RFC 1035), which resolvers

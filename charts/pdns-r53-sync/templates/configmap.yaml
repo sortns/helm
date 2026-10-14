@@ -21,7 +21,7 @@ data:
         timeout: {{ .Values.poweradmin.timeoutSeconds }}
         verify_tls: {{ .Values.poweradmin.verifyTls }}
       route53:
-        class: octodns_route53.Route53Provider
+        class: pa_sync.route53.Route53Provider
         {{- if eq .Values.route53.credentials "secret" }}
         access_key_id: env/AWS_ACCESS_KEY_ID
         secret_access_key: env/AWS_SECRET_ACCESS_KEY

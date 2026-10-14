@@ -7,6 +7,7 @@ which documents deployment, Poweradmin/IAM preparation and metrics.
 |---|---|
 | `pa_sync/poweradmin.py` | read-only Poweradmin API v2 client (formats verified against 4.2.6) |
 | `pa_sync/source.py` | octoDNS source: Poweradmin records → octoDNS records, skip rules |
+| `pa_sync/route53.py` | octodns-route53 provider plus TLSA and SSHFP, which Route53 supports but the provider does not map |
 | `pa_sync/processors.py` | Route53-side normalisation (dot-less targets written by other tools count as FQDNs) |
 | `pa_sync/plan.py` | plan output: one `plan: Create/Update/Delete` log line per change + metrics |
 | `pa_sync/guard.py` | refuses to sync unless the pinned hosted zone is the only public one with that name |
